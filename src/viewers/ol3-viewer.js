@@ -236,6 +236,9 @@ export default class Ol3Viewer extends EventSubscriber {
      */
     attached() {
         let frame = $('.frame');
+        // Update image_config size to fit current frame size
+        this.image_config.size.width = parseInt(frame.width() / 2) + 'px';
+        this.image_config.size.height = parseInt(frame.height()) + 'px';
         let minX = 0, maxX = 0, minY = 0, maxY = 0;;
         let container = this.getContainer();
 
