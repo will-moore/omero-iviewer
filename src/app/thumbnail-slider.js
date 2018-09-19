@@ -553,16 +553,10 @@ export default class ThumbnailSlider extends EventSubscriber {
                         this.context.initial_type;
             // single click in mdi will need to 'replace' image config
             if (this.context.useMDI && !is_double_click) {
-                    let oldPosition = Object.assign({}, this.image_config.position);
-                    let oldSize = Object.assign({}, this.image_config.size);
-                    this.context.removeImageConfig(this.image_config, true);
-                    this.context.addImageConfig(image_id, parent_id, parent_type);
-                    let selImgConf = this.context.getSelectedImageConfig();
-                    if (selImgConf !== null) {
-                        selImgConf.position = oldPosition;
-                        selImgConf.size = oldSize;
-                    }
-            } else this.context.addImageConfig(image_id, parent_id, parent_type);
+                this.context.replaceImageConfig(image_id, parent_id, parent_type);
+            } else {
+                this.context.addImageConfig(image_id, parent_id, parent_type);
+            }
         };
 
         let modifiedConfs = this.context.useMDI ?

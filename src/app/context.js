@@ -639,15 +639,9 @@ export default class Context {
 
         // we do not keep the other configs around unless we are in MDI mode.
         if (!this.useMDI) {
-            for (let [id, conf] of this.image_configs)
-                this.removeImageConfig(id,conf)
-        } else {
-            for (let [id, conf] of this.image_configs) {
-                if (conf.show_controls)
-                    this.publish(
-                        IMAGE_VIEWER_CONTROLS_VISIBILITY,
-                        {config_id: this.selected_config, flag: false});
-            };
+            this.image_configs.forEach((conf, id) => {
+                this.removeImageConfig(id);
+            });
         }
 
         let image_config =
@@ -656,6 +650,26 @@ export default class Context {
         this.image_configs.set(image_config.id, image_config);
         this.selectConfig(image_config.id);
         image_config.bind();
+    }
+
+    /**
+     * Creates an ImageConfig instance and replaces the currently selected one
+     *
+     * @param {number} image_id the image id
+     * @param {number} parent_id an optional parent id
+     * @param {number} parent_type an optional parent type  (e.g. dataset or well)
+     */
+    replaceImageConfig(image_id, parent_id, parent_type) {
+        let image_config = this.getSelectedImageConfig();
+        let oldPosition = Object.assign({}, image_config.position);
+        let oldSize = Object.assign({}, image_config.size);
+        this.removeImageConfig(image_config, true);
+        this.addImageConfig(image_id, parent_id, parent_type);
+        let selImgConf = this.getSelectedImageConfig();
+        if (selImgConf !== null) {
+            selImgConf.position = oldPosition;
+            selImgConf.size = oldSize;
+        }
     }
 
     /**
