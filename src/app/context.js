@@ -112,6 +112,9 @@ export default class Context {
      */
     image_configs = new Map();
 
+
+    cached_image_configs = new Map();
+
     /**
      * the initial type the viewer was opened with
      *
@@ -644,12 +647,20 @@ export default class Context {
             });
         }
 
-        let image_config =
-            new ImageConfig(this, image_id, parent_id, parent_type);
+        let image_config;
+        console.log('addImageConfig()', this.cached_image_configs.has(image_id));
+        if (this.cached_image_configs.has(image_id)) {
+            image_config = this.cached_image_configs.get(image_id);
+            console.log('image_config.image_info.ready', image_config.image_info.ready);
+            image_config.image_info.ready = true;
+        } else {
+            image_config = new ImageConfig(this, image_id, parent_id, parent_type);
+            // trigger data loading
+            image_config.bind();
+        }
         // store the image config in the map and make it the selected one
         this.image_configs.set(image_config.id, image_config);
         this.selectConfig(image_config.id);
-        image_config.bind();
     }
 
     /**
@@ -714,9 +725,14 @@ export default class Context {
             }
         }
 
+        conf.image_info.ready = false;
+        let imageId = conf.image_info.image_id;
+        console.log("removeImageConfig", imageId);
+        this.cached_image_configs.set(imageId, conf);
+
         // call unbind and wipe reference
-        conf.unbind();
-        conf = null;
+        // conf.unbind();
+        // conf = null;
     }
 
     /**

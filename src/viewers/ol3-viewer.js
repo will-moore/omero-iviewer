@@ -235,6 +235,7 @@ export default class Ol3Viewer extends EventSubscriber {
      * @memberof Ol3Viewer
      */
     attached() {
+        console.log('ol3.viewer.attached()', this.image_config.id);
         let frame = $('.frame');
         let minX = 0, maxX = 0, minY = 0, maxY = 0;;
         let container = this.getContainer();
@@ -403,6 +404,7 @@ export default class Ol3Viewer extends EventSubscriber {
      * @memberof Ol3Viewer
      */
     bind() {
+        console.log("ol3-viewer.bind()", this.image_config.id);
         // we 'tag' the element to belong to a certain image config
         this.element.parentNode.id = this.image_config.id;
         // define the container element
@@ -416,6 +418,7 @@ export default class Ol3Viewer extends EventSubscriber {
      * @memberof Ol3Viewer
      */
     detached() {
+        console.log("ol3-viewer.detached()", this.image_config.id);
         if (this.context.useMDI) {
             let container = this.getContainer();
             container.find('.ol-control').off('mousedown');
@@ -436,6 +439,7 @@ export default class Ol3Viewer extends EventSubscriber {
      * @memberof Ol3Viewer
      */
     unbind() {
+        console.log("ol3-viewer.unbind()", this.image_config.id);
         if (this.image_config_selection_observer) {
             this.image_config_selection_observer.dispose();
             this.image_config_selection_observer = null;
