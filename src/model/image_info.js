@@ -406,6 +406,8 @@ export default class ImageInfo {
             (this.short_image_name !== '' ?
                 this.short_image_name : APP_TITLE);
 
+        this.fileset = response.fileset;
+
         // If we've viewed this image before, apply cached settings
         this.applyCachedSettings(response);
 

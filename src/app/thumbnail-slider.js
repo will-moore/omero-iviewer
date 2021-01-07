@@ -488,7 +488,8 @@ export default class ThumbnailSlider extends EventSubscriber {
                             this.hideMe();
                             return;
                         }
-                    this.setThumbnailsCount(response.meta.totalCount);
+                    var fileset = this.image_config.image_info.fileset;
+                    this.setThumbnailsCount(fileset.images.length);
                     if (this.thumbnails.length === 0) this.hideMe();
                 }
 
@@ -541,9 +542,11 @@ export default class ThumbnailSlider extends EventSubscriber {
             this.webclient_prefix + "/render_thumbnail/";
 
         let new_index = 0;
+        var fileset_img_ids = this.image_config.image_info.fileset.images.map(i => i.id);
+        let fileset_thumbs = thumbnails.filter(thumb => fileset_img_ids.includes(thumb['@id']));
         this.thumbnails = this.thumbnails.map((thumb, idx) => {
             if ((idx === start_index + new_index) && (new_index < thumbnails.length)) {
-                let t = thumbnails[new_index];
+                let t = fileset_thumbs[new_index];
                 new_index++;
                 return {
                     id: t['@id'],

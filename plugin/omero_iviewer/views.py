@@ -530,6 +530,11 @@ def image_data(request, image_id, conn=None, **kwargs):
         for fam in families:
             rv['families'].append(fam.getValue())
 
+        fileset = image.getFileset()
+        rv['fileset'] = {'id': fileset.id, 'images': []}
+        for i in fileset.copyImages():
+            rv['fileset']['images'].append({'id': i.id, 'name': i.name})
+
         return JsonResponse(rv)
     except Exception as image_data_retrieval_exception:
         return JsonResponse({'error': repr(image_data_retrieval_exception)})
