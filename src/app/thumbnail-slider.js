@@ -294,13 +294,17 @@ export default class ThumbnailSlider extends EventSubscriber {
      * @memberof ThumbnailSlider
      */
     initializeThumbnails(refresh = false) {
+        var fileset_img_ids = [];
+        if (this.image_config.image_info.fileset) {
+            fileset_img_ids = this.image_config.image_info.fileset.images.map(i => i.id);
+        }
         // standard case: we are an image
         if (this.context.initial_type === INITIAL_TYPES.IMAGES ||
             this.context.initial_type === INITIAL_TYPES.ROIS ||
             this.context.initial_type === INITIAL_TYPES.SHAPES) {
-            if (this.context.initial_ids.length > 1) {
+            if (this.context.initial_ids.length > 1 || fileset_img_ids.length > 1) {
                 // we are a list of images
-                this.setThumbnailsFromIds(this.context.initial_ids);
+                this.setThumbnailsFromIds(fileset_img_ids);
             } else {
                 this.gatherThumbnailMetaInfo();
             }
@@ -488,8 +492,7 @@ export default class ThumbnailSlider extends EventSubscriber {
                             this.hideMe();
                             return;
                         }
-                    var fileset = this.image_config.image_info.fileset;
-                    this.setThumbnailsCount(fileset.images.length);
+                    this.setThumbnailsCount(response.meta.totalCount);
                     if (this.thumbnails.length === 0) this.hideMe();
                 }
 
@@ -542,11 +545,9 @@ export default class ThumbnailSlider extends EventSubscriber {
             this.webclient_prefix + "/render_thumbnail/";
 
         let new_index = 0;
-        var fileset_img_ids = this.image_config.image_info.fileset.images.map(i => i.id);
-        let fileset_thumbs = thumbnails.filter(thumb => fileset_img_ids.includes(thumb['@id']));
         this.thumbnails = this.thumbnails.map((thumb, idx) => {
             if ((idx === start_index + new_index) && (new_index < thumbnails.length)) {
-                let t = fileset_thumbs[new_index];
+                let t = thumbnails[new_index];
                 new_index++;
                 return {
                     id: t['@id'],
