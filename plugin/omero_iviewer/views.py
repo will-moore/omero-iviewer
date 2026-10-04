@@ -15,10 +15,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.http import JsonResponse, Http404
 from django.conf import settings
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
 
 from os.path import splitext
 from collections import defaultdict
@@ -50,9 +50,11 @@ MAX_LIMIT = max(1, API_MAX_LIMIT)
 ROI_PAGE_SIZE = getattr(iviewer_settings, 'ROI_PAGE_SIZE')
 ROI_PAGE_SIZE = min(MAX_LIMIT, ROI_PAGE_SIZE)
 MAX_PROJECTION_BYTES = getattr(iviewer_settings, 'MAX_PROJECTION_BYTES')
+MAX_ACTIVE_CHANNELS = getattr(iviewer_settings, 'MAX_ACTIVE_CHANNELS')
 ROI_COLOR_PALETTE = getattr(iviewer_settings, 'ROI_COLOR_PALETTE')
 SHOW_PALETTE_ONLY = getattr(iviewer_settings, 'SHOW_PALETTE_ONLY')
 ENABLE_MIRROR = getattr(iviewer_settings, 'ENABLE_MIRROR')
+REDIRECT_IVIEWER = getattr(iviewer_settings, 'REDIRECT_IVIEWER')
 
 PROJECTIONS = {
     'normal': -1,
@@ -78,13 +80,51 @@ def index(request, iid=None, conn=None, **kwargs):
         if request.GET[key]:
             params[str(key).upper()] = str(request.GET[key])
 
+    # If URL is /iviewer/?... rather than /webclient/img_detail/123/
+    # we want to redirect to the latter, to support omero.web.viewer.view config
+    if iid is None and REDIRECT_IVIEWER:
+        image_id = None
+        query_string = '&'.join([f"{key}={value}" for key, value in request.GET.items()])
+        # we want to redirect to /webclient/img_detail/123/
+        if params.get("ROI") is not None:
+            roi = conn.getQueryService().get('Roi', int(params.get("ROI")), conn.SERVICE_OPTS)
+            image_id = roi.image.id.val
+        elif params.get("SHAPE") is not None:
+            image_id, roi_id = get_image_roi_id_for_shape(conn, params.get("SHAPE"))
+        elif params.get("IMAGES") is not None:
+            image_id = int(params.get("IMAGES").split(',')[0])
+        elif params.get("WELL") is not None:
+            well = conn.getObject("Well", int(params.get("WELL")))
+            if well is not None:
+                image_ids = [well_sample.getImage().id for well_sample in well.listChildren()]
+                if len(image_ids) > 0:
+                    image_id = image_ids[0]
+                    query_string = f"images={','.join(map(str, image_ids))}"
+
+        if image_id is not None:
+            redirect_url = reverse('web_image_viewer', kwargs={'iid': image_id})
+            # add all query params to redirect url
+            # e.g. /webclient/img_detail/123/?images=123,456 will open both images
+            # and /webclient/img_detail/123/?roi=456 will open the image with the roi highlighted
+            if query_string:
+                redirect_url = f"{redirect_url}?{query_string}"
+            return redirect(redirect_url)
+        else:
+            raise Http404(f'Could not find Image, Well, ROI, or Shape for given id(s)')
+
     # set interpolation default
     server_settings = request.session.get('server_settings', {})
-    params['INTERPOLATE'] = server_settings.get('interpolate_pixels', True)
+    viewer_settings = server_settings.get('viewer', {})
 
+    params['INTERPOLATE'] = viewer_settings.get('interpolate_pixels', True)
     # we add the (possibly prefixed) uris
     params['WEBGATEWAY'] = reverse('webgateway')
     params['WEBCLIENT'] = reverse('webindex')
+    try:
+        params['OMERO_FIGURE'] = reverse('figure_index')
+    except NoReverseMatch:
+        # omero-figure not installed
+        pass
     params['WEB_API_BASE'] = reverse(
         'api_base', kwargs={'api_version': WEB_API_VERSION})
     if settings.FORCE_SCRIPT_NAME is not None:
@@ -114,6 +154,7 @@ def index(request, iid=None, conn=None, **kwargs):
         nodedescriptors = None
 
     params['MAX_PROJECTION_BYTES'] = max_bytes
+    params['MAX_ACTIVE_CHANNELS'] = MAX_ACTIVE_CHANNELS
     params['NODEDESCRIPTORS'] = nodedescriptors
     params['ROI_COLOR_PALETTE'] = ROI_COLOR_PALETTE
     params['SHOW_PALETTE_ONLY'] = SHOW_PALETTE_ONLY
@@ -479,7 +520,8 @@ def roi_image_data(request, obj_type, obj_id, conn=None, **kwargs):
     """ Get image_data for image linked to ROI """
     image_id = None
     if obj_type == 'roi':
-        roi = conn.getQueryService().get('Roi', int(obj_id))
+        roi = conn.getQueryService().get('Roi', int(obj_id),
+                                         conn.SERVICE_OPTS)
         if roi:
             image_id = roi.image.id.val
     elif obj_type == 'shape':
@@ -511,18 +553,22 @@ def image_data(request, image_id, conn=None, **kwargs):
             value = format_pixel_size_with_units(size)
             rv['pixel_size']['unit_x'] = value[0]
             rv['pixel_size']['symbol_x'] = value[1]
+            # id e.g. 'MICROMETER' is used for export to OMERO.figure
+            rv['pixel_size']['unit_id_x'] = value[2]
         py = image.getPrimaryPixels().getPhysicalSizeY()
         if (py is not None and 'pixel_size' in rv):
             size = image.getPixelSizeY(True)
             value = format_pixel_size_with_units(size)
             rv['pixel_size']['unit_y'] = value[0]
             rv['pixel_size']['symbol_y'] = value[1]
+            rv['pixel_size']['unit_id_y'] = value[2]
         pz = image.getPrimaryPixels().getPhysicalSizeZ()
         if (pz is not None and 'pixel_size' in rv):
             size = image.getPixelSizeZ(True)
             value = format_pixel_size_with_units(size)
             rv['pixel_size']['unit_z'] = value[0]
             rv['pixel_size']['symbol_z'] = value[1]
+            rv['pixel_size']['unit_id_z'] = value[2]
 
         delta_t_unit_symbol = None
         rv['delta_t_unit_symbol'] = delta_t_unit_symbol
@@ -624,11 +670,11 @@ def format_pixel_size_with_units(value):
     length = value.getValue()
     unit = str(value.getUnit())
     if unit == "MICROMETER":
-        unit = lengthunit(length)
+        symbol = lengthunit(length)
         length = lengthformat(length)
     else:
-        unit = value.getSymbol()
-    return (length, unit)
+        symbol = value.getSymbol()
+    return (length, symbol, unit)
 
 
 @login_required()

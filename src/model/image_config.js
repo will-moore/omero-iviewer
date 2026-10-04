@@ -94,7 +94,7 @@ export default class ImageConfig extends History {
      * @memberof ImageConfig
      * @type {Object}
      */
-    size = {width: '435px', height: '435px'};
+    size = {width: '500px', height: '500px'};
 
     /**
      * show histogram flag
@@ -106,12 +106,13 @@ export default class ImageConfig extends History {
     /**
      * @constructor
      * @param {Context} context the application context
-     * @param {number} obj_id the id of the obj (image, roi)
-     * @param {number} obj_type the type of obj. e.g. INITIAL_TYPES.IMAGES or ROIS
+     * @param {number} image_id the image id to be queried. If undefined then use shape or roi id to query for image data
+     * @param {number} roi_id the roi id to be queried
+     * @param {number} shape_id the shape id to be queried
      * @param {number} parent_id an optional parent id
      * @param {number} parent_type an optional parent type  (e.g. INITIAL_TYPES.DATASET or WELL)
      */
-    constructor(context, obj_id, obj_type, parent_id, parent_type) {
+    constructor(context, image_id, roi_id, shape_id, parent_id, parent_type) {
         super(); // for history
         this.context = context;
         // for now this should suffice, especially given js 1 threaded nature
@@ -119,7 +120,7 @@ export default class ImageConfig extends History {
         // go create the data objects for an image and its associated region
         this.image_info =
             new ImageInfo(
-                this.context, this.id, obj_id, obj_type, parent_id, parent_type);
+                this.context, this.id, image_id, roi_id, shape_id, parent_id, parent_type);
         this.regions_info = new RegionsInfo(this.image_info);
     }
 
@@ -328,18 +329,19 @@ export default class ImageConfig extends History {
         let image_info = this.image_info;
         let url =
             this.context.server + this.context.getPrefixedURI(WEBGATEWAY) +
-            "/saveImgRDef/" +
-            image_info.image_id + '/?m=' + image_info.model[0] +
+            `/saveImgRDef/${image_info.image_id}/`;
+        let query = 'm=' + image_info.model[0] +
             "&p=" + image_info.projection +
             "&t=" + (image_info.dimensions.t+1) +
             "&z=" + (image_info.dimensions.z+1) +
             "&q=0.9&ia=0";
-        url = Misc.appendChannelsAndMapsToQueryString(image_info.channels, url);
+        query = Misc.appendChannelsAndMapsToQueryString(image_info.channels, query);
 
         if (typeof error !== 'function')
             error = (error) => console.error(error);
         $.ajax({
             'url': url, 'method': 'POST',
+            'data': query, 'dataType': 'json',
             'success': success, 'error': error
         });
     }

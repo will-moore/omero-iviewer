@@ -82,6 +82,12 @@ export const WEBCLIENT = "WEBCLIENT";
 export const PLUGIN_PREFIX = "PLUGIN_PREFIX";
 
 /**
+ * a convenience string lookup for OMERO_FIGURE
+ * @type {string}
+ */
+export const OMERO_FIGURE = "OMERO_FIGURE";
+
+/**
  * the viewer's dom element prefix (complemented by config id)
  * @type {string}
  */
@@ -134,6 +140,7 @@ export const REQUEST_PARAMS = {
     ZOOM: 'ZM',
     ROI_PAGE_SIZE: 'ROI_PAGE_SIZE',
     MAX_PROJECTION_BYTES: 'MAX_PROJECTION_BYTES',
+    MAX_ACTIVE_CHANNELS: 'MAX_ACTIVE_CHANNELS',
     ROI_COLOR_PALETTE: 'ROI_COLOR_PALETTE',
     SHOW_PALETTE_ONLY: 'SHOW_PALETTE_ONLY',
     ENABLE_MIRROR: 'ENABLE_MIRROR',

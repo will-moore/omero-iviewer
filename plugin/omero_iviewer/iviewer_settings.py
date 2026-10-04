@@ -35,6 +35,15 @@ IVIEWER_SETTINGS_MAPPING = {
           "omero.pixeldata.max_projection_bytes will be used or "
           "the lower value if both are set.")],
 
+    "omero.web.iviewer.max_active_channels":
+        ["MAX_ACTIVE_CHANNELS",
+         10,
+         int,
+         ("Default maximum number of active channels. "
+          "If the /omero_ms_image_region/ microservice endpoint "
+          "is provided, the options.maxActiveChannels "
+          "from that response will be used instead.")],
+
     "omero.web.iviewer.roi_page_size":
         ["ROI_PAGE_SIZE",
          500,
@@ -55,6 +64,13 @@ IVIEWER_SETTINGS_MAPPING = {
          bool,
          ("Disables spectrum color picker. Forces users to use preset options."
           "Must define a color palette for this setting to work.")],
+
+    "omero.web.iviewer.redirect_iviewer":
+        ["REDIRECT_IVIEWER",
+         False,
+         bool,
+         ("If True, we redirect /iviewer/?... to /webclient/img_detail/123/ so"
+         " that a different viewer configured at omero.web.viewer.view is used.")],
 
     "omero.web.iviewer.enable_mirror":
         ["ENABLE_MIRROR",

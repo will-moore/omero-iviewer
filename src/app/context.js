@@ -33,7 +33,7 @@ import {
 import {
     APP_NAME, IMAGE_CONFIG_RELOAD, IVIEWER, INITIAL_TYPES,
     LUTS_PNG_URL, PLUGIN_NAME, PLUGIN_PREFIX, REQUEST_PARAMS, SYNC_LOCK,
-    TABS, URI_PREFIX, WEB_API_BASE, WEBCLIENT, WEBGATEWAY
+    TABS, URI_PREFIX, WEB_API_BASE, WEBCLIENT, WEBGATEWAY, OMERO_FIGURE
 } from '../utils/constants';
 
 /**
@@ -192,6 +192,14 @@ export default class Context {
      luts = new Map();
 
      /**
+      * max active channels - default is loaded from iviewer_settings
+      *
+      * @memberof Context
+      * @type {number}
+      */
+     max_active_channels = 10;
+
+     /**
       * the lookup png
       *
       * @memberof Context
@@ -242,6 +250,9 @@ export default class Context {
 
         // set up luts
         this.setUpLuts();
+
+        // load max active channels
+        this.loadMaxActiveChannels();
 
         // initialize Open_with
         OpenWith.initOpenWith();
@@ -344,6 +355,25 @@ export default class Context {
         });
     }
 
+    loadMaxActiveChannels() {
+        // query microservice endpoint...
+        let url = this.server + "/omero_ms_image_region/";
+        fetch(url, {method: "OPTIONS"})
+        .then(r => r.json())
+        .then(data => {
+            if (Number.isInteger(data.options?.maxActiveChannels)) {
+                this.max_active_channels = data.options.maxActiveChannels;
+                // in case the images loaded already (this query took longer than
+                // expected), let's update them...
+                for (let [id, conf] of this.image_configs) {
+                    conf.image_info.applyMaxActiveChannels(this.max_active_channels);
+                }
+            }
+        }).catch(() => {
+            console.log("failed to load omero_ms_image_region info");
+        });
+    }
+
     /**
      * Depending on what received as the inital parameters
      * (image(s), dataset, etc) we continue to create and add
@@ -354,26 +384,39 @@ export default class Context {
      */
     openWithInitialParams() {
         // do we have any image ids or roi ids?
-        let initial_ids;
-        let initial_type;   // INITIAL_TYPES int
-        if (this.initParams[REQUEST_PARAMS.IMAGES]) {
-            initial_ids = this.initParams[REQUEST_PARAMS.IMAGES];
-            initial_type = INITIAL_TYPES.IMAGES;
-        } else if (this.initParams[REQUEST_PARAMS.ROI]) {
-            // also support ?roi=1
-            initial_ids = this.initParams[REQUEST_PARAMS.ROI];
-            initial_type = INITIAL_TYPES.ROIS;
-        } else if (this.initParams[REQUEST_PARAMS.SHAPE]) {
-            initial_ids = this.initParams[REQUEST_PARAMS.SHAPE];
-            initial_type = INITIAL_TYPES.SHAPES;
-        }
-        if (initial_ids) {
-            this.initial_ids = initial_ids.split(',')
-                .map(id => parseInt(id))
-                .filter(id => !isNaN(id))
 
-            if (this.initial_ids.length > 0)
-                this.initial_type = initial_type;
+        const parseIds = (dtype) => {
+            let value = this.initParams[dtype];
+            let ids = value.split(',')
+                .map(id => parseInt(id))
+                .filter(id => !isNaN(id));
+            if (ids.length > 0) {
+                this.initial_ids = ids;
+            }
+            return ids;
+        }
+
+        let image_ids = [], roi_ids = [], shape_ids = [];
+
+        // this.initial_type and this.initial_ids will be set to the type of the last param that is successfully parsed,
+        // but that's ok because we only use it to determine the parent type for the image config, 
+        if (this.initParams[REQUEST_PARAMS.SHAPE]) {
+            shape_ids = parseIds(REQUEST_PARAMS.SHAPE);
+            if (shape_ids.length > 0) {
+                this.initial_type = INITIAL_TYPES.SHAPES;
+            }
+        }
+        if (this.initParams[REQUEST_PARAMS.ROI]) {
+            roi_ids = parseIds(REQUEST_PARAMS.ROI);
+            if (roi_ids.length > 0) {
+                this.initial_type = INITIAL_TYPES.ROIS;
+            }
+        }
+        if (this.initParams[REQUEST_PARAMS.IMAGES]) {
+            image_ids = parseIds(REQUEST_PARAMS.IMAGES);
+            if (image_ids.length > 0) {
+                this.initial_type = INITIAL_TYPES.IMAGES;
+            }
         }
 
         // do we have a dataset id?
@@ -388,7 +431,7 @@ export default class Context {
             initial_well_id = null;
 
         // add image config if we have image ids OR roi id OR shape id
-        if ([INITIAL_TYPES.IMAGES, INITIAL_TYPES.ROIS, INITIAL_TYPES.SHAPES].indexOf(this.initial_type) > -1) {
+        if (image_ids.length > 0 || roi_ids.length > 0 || shape_ids.length > 0) {
             let parent_id = initial_dataset_id || initial_well_id;
             let parent_type;
             if (parent_id) {
@@ -398,7 +441,8 @@ export default class Context {
                     parent_type = INITIAL_TYPES.WELL
                 }
             }
-            this.addImageConfig(this.initial_ids[0], this.initial_type, parent_id, parent_type);
+            // one of these should be valid, others may be undefined if length is 0
+            this.addImageConfig(image_ids[0], roi_ids[0], shape_ids[0], parent_id, parent_type);
         } else {
             // we could either have a well or just a dataset
             if (initial_well_id) { // well takes precedence
@@ -458,6 +502,7 @@ export default class Context {
         this.max_projection_bytes = parseInt(this.initParams[REQUEST_PARAMS.MAX_PROJECTION_BYTES], 10)
                                     || (1024 * 1024 * 256);
         this.max_projection_bytes = parseInt(this.initParams[REQUEST_PARAMS.MAX_PROJECTION_BYTES], 10) || (1024 * 1024 * 256);
+        this.max_active_channels = parseInt(this.initParams[REQUEST_PARAMS.MAX_ACTIVE_CHANNELS], 10) || 10;
         let userPalette = `${this.initParams[REQUEST_PARAMS.ROI_COLOR_PALETTE]}`
         if (userPalette) {
             let arr = userPalette.match(/\[[^\[\]]*\]/g)
@@ -502,6 +547,10 @@ export default class Context {
                 this.prefixed_uris.set(
                     key, typeof this.initParams[key] === 'string' ?
                             this.initParams[key] : '/' + key.toLowerCase()));
+        // OMERO_FIGURE might not be installed
+        if (this.initParams[OMERO_FIGURE]) {
+            this.prefixed_uris.set(OMERO_FIGURE, this.initParams[OMERO_FIGURE]);
+        }
     }
 
     /**
@@ -544,22 +593,22 @@ export default class Context {
                 if (typeof keyHandlers === 'undefined' ||
                     event.target.nodeName.toUpperCase() === 'INPUT') return;
 
-                // we allow the browser's default action and event
-                // bubbling unless one handler returns false
-                let allowDefaultAndPropagation = true;
+                // sort to put "global" last - give other groups (tabs) a chance to handle first
+                let keys = Object.keys(keyHandlers).sort((x, y) => x === 'global' ? 1 : -1);
                 try {
-                    for (let a in keyHandlers) {
+                    for (let a of keys) {
                         let action = keyHandlers[a];
                         if (action['ctrl'] && !event[command]) continue;
-                        if (!((action['action'])(event)))
-                            allowDefaultAndPropagation = false;
+                        let result = (action['action'])(event);
+                        // we allow the browser's default action and event
+                        // bubbling unless one handler returns false
+                        if (result === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return false;
+                        }
                     }
                 } catch(ignored) {}
-                if (!allowDefaultAndPropagation) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    return false;
-                }
             };
     }
 
@@ -691,13 +740,13 @@ export default class Context {
      * Creates and adds an ImageConfig instance by handing it an id of an image
      * stored on the server, as well as making it the selected/active image config.
      *
-     * @param {number} obj_id the image or roi id
-     * @param {number} obj_type e.g. INITIAL_TYPES.IMAGES or ROIS
+     * @param {number} image_id the image id
+     * @param {number} roi_id the roi id
+     * @param {number} shape_id the shape id
      * @param {number} parent_id an optional parent id
      * @param {number} parent_type an optional parent type  (e.g. dataset or well)
      */
-    addImageConfig(obj_id, obj_type, parent_id, parent_type) {
-        if (typeof obj_id !== 'number' || obj_id < 0) return;
+    addImageConfig(image_id, roi_id, shape_id, parent_id, parent_type) {
 
         // we do not keep the other configs around unless we are in MDI mode.
         if (!this.useMDI) {
@@ -713,7 +762,7 @@ export default class Context {
         }
 
         let image_config =
-            new ImageConfig(this, obj_id, obj_type, parent_id, parent_type);
+            new ImageConfig(this, image_id, roi_id, shape_id, parent_id, parent_type);
         // store the image config in the map and make it the selected one
         this.image_configs.set(image_config.id, image_config);
         this.selectConfig(image_config.id);
@@ -771,7 +820,7 @@ export default class Context {
                 let oldPosition = Object.assign({}, replace_image_config.position);
                 let oldSize = Object.assign({}, replace_image_config.size);
                 this.removeImageConfig(replace_image_config, true);
-                this.addImageConfig(obj_id, initial_type, parent_id, parent_type);
+                this.addImageConfig(obj_id, undefined, undefined, parent_id, parent_type);
                 // Get the newly created image config
                 let selImgConf = this.getSelectedImageConfig();
                 if (selImgConf !== null) {
@@ -779,7 +828,7 @@ export default class Context {
                     selImgConf.size = oldSize;
                 }
             } else {
-                this.addImageConfig(obj_id, initial_type, parent_id, parent_type);
+                this.addImageConfig(obj_id, undefined, undefined, parent_id, parent_type);
             }
         };
 

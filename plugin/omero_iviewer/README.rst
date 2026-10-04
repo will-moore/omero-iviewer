@@ -54,6 +54,13 @@ To enable the "open with" feature:
 Now restart OMERO.web as normal.
 
 
+Settings
+========
+
+See the `OMERO.iviewer settings <https://github.com/ome/omero-iviewer/blob/master/docs/settings.md>`_
+for details on how to configure other settings.
+
+
 Usage
 =====
 
