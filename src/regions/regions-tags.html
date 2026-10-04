@@ -1,0 +1,16 @@
+<template>
+    <div show.bind="visible"
+         style="position: fixed; z-index: 1000; width: 250px; min-height: 100px;
+                background: #f8f8f8; border: solid #ddd 1px; border-radius: 3px;
+                box-shadow: 2px 2px 5px #ccc; left: ${left}px; top: ${top}px;">
+        <div mousedown.trigger="onDragStart($event)"
+             style="cursor: move; padding: 3px 5px; background: #e8e8e8;
+                    user-select: none; display: flex; justify-content: space-between;">
+            <span>ROI Tags</span>
+            <span style="cursor: pointer;" title="Close"
+                  mousedown.trigger="$event.stopPropagation()"
+                  click.delegate="hide()">&times;</span>
+        </div>
+        <div style="padding: 5px;"></div>
+    </div>
+</template>

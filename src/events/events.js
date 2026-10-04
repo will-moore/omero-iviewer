@@ -54,6 +54,8 @@ export const REGIONS_SHAPE_GENERATED = "REGIONS_SHAPE_GENERATED";
 export const REGIONS_CHANGE_MODES = "REGIONS_CHANGE_MODES";
 /** whenever comments ought to be shown/hidden */
 export const REGIONS_SHOW_COMMENTS = "REGIONS_SHOW_COMMENTS";
+/** whenever the draggable ROI tags popup ought to be shown */
+export const REGIONS_SHOW_TAGS = "REGIONS_SHOW_TAGS";
 /** whenever shape popup should be enabled/disabled */
 export const ENABLE_SHAPE_POPUP = "ENABLE_SHAPE_POPUP";
 /** whenever shapes ought to be generated */

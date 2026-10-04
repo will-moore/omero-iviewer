@@ -27,7 +27,7 @@ import {inject,
     bindable,
     BindingEngine} from 'aurelia-framework';
 import {
-    REGIONS_SET_PROPERTY, EventSubscriber,
+    REGIONS_SET_PROPERTY, REGIONS_SHOW_TAGS, EventSubscriber,
     IMAGE_DIMENSION_CHANGE,
     IMAGE_SETTINGS_CHANGE,
     IMAGE_DIMENSION_PLAY
@@ -603,12 +603,12 @@ export default class RegionsList extends EventSubscriber {
      */
     showColumn(which) {
         console.log("showColumn", which)
-        if (typeof which !== 'string' || which.length === 0 ||
-            which === this.active_column) return;
+        if (typeof which !== 'string' || which.length === 0) return;
+        // the tags popup can be closed independently, so always re-show it
+        if (which === this.active_column && which !== "roi_tags") return;
         this.active_column = which;
-        // console.log('this.active_column == "roi_ids"',this.active_column, this.active_column == "roi_ids")
         if (this.active_column == "roi_tags") {
-            this.loadRoiTags();
+            this.context.publish(REGIONS_SHOW_TAGS, {});
         }
     }
 
