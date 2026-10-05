@@ -196,7 +196,6 @@
                         </div>
                         <div class="regions-table-col roi-tags"
                              show.bind="active_column === 'roi_tags'">
-                            <input style="width: 40px" focus.trigger="loadRois(roi_id)" keyup.trigger="handleAddTag($event, roi_id)" placeholder="Add Tag ID" type="text"/>
                             <span show.bind="roi_tags_loaded">
                                 <span if.bind="roi_tags[roi_id]">
                                     <template repeat.for="t of roi_tags[roi_id]">

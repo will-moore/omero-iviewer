@@ -27,7 +27,7 @@ import {inject,
     bindable,
     BindingEngine} from 'aurelia-framework';
 import {
-    REGIONS_SET_PROPERTY, REGIONS_SHOW_TAGS, EventSubscriber,
+    REGIONS_SET_PROPERTY, REGIONS_SHOW_TAGS, LINK_TAG, EventSubscriber,
     IMAGE_DIMENSION_CHANGE,
     IMAGE_SETTINGS_CHANGE,
     IMAGE_DIMENSION_PLAY
@@ -110,6 +110,8 @@ export default class RegionsList extends EventSubscriber {
             (params={}) => this.changeImageSettings(params)],
         [IMAGE_DIMENSION_PLAY,
             (params={}) => this.playImageDimension(params)],
+        [LINK_TAG,
+            (params={}) => this.handleAddTag(params)],
     ];
 
     /**
@@ -609,6 +611,7 @@ export default class RegionsList extends EventSubscriber {
         this.active_column = which;
         if (this.active_column == "roi_tags") {
             this.context.publish(REGIONS_SHOW_TAGS, {});
+            this.loadRoiTags();
         }
     }
 
@@ -675,33 +678,31 @@ export default class RegionsList extends EventSubscriber {
         sendRequest(properties);
     }
 
-    // KeyUp handling on <input> If Enter is pressed, add Tag to ROI (by Tag ID)
-    handleAddTag(event, roi_id) {
-        if (event.key == "Enter") {
-            let ann_ids = event.target.value.split(",").map(id => id.trim());
-            let server = this.context.server;
-            // let url = this.context.getPrefixedURI("PLUGIN_PREFIX") +
-            let url = "/iviewer/link_annotations/";
-            let cookie = Misc.getCookie("csrftoken");
-            let postContent = {
-                "annotations" : ann_ids,
-                "rois" : [roi_id]
-            }
+    // Handle LINK_TAG: link the Tag to the ROIs of the selected shapes
+    handleAddTag(params) {
+        console.log('handleAddTag', params);
+        let roi_ids = new Set();
+        this.regions_info.selected_shapes.forEach((shape_id) => {
+            let roi_id = parseInt(String(shape_id).split(':')[0], 10);
+            // unsaved ROIs have negative ids and can't be linked yet
+            if (roi_id > 0) roi_ids.add(roi_id);
+        });
+        if (roi_ids.size === 0) return;
+        roi_ids = Array.from(roi_ids);
 
-            var properties = {
-                "content" : JSON.stringify(postContent),
-                "server" : server,
-                "uri" : url,
-                "method" : 'POST',
-                "headers" : {"X-CSRFToken" : cookie},
-                "jsonp" : false,
-                "success": (rsp)=>{
-                    console.log("success", rsp);
-                    // Re-load Tags for this ROI
-                    this.loadRoiTags(roi_id);
-                },
-            };
-            sendRequest(properties);
-        }
+        let postContent = {
+            "annotations" : [params.tag_id],
+            "rois" : roi_ids
+        };
+        console.log('postContent', postContent);
+        sendRequest({
+            "content" : JSON.stringify(postContent),
+            "server" : this.context.server,
+            "uri" : "/iviewer/link_annotations/",
+            "method" : 'POST',
+            "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
+            "jsonp" : false,
+            "success": () => this.loadRoiTags(),
+        });
     }
 }

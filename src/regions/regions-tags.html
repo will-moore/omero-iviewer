@@ -11,6 +11,16 @@
                   mousedown.trigger="$event.stopPropagation()"
                   click.delegate="hide()">&times;</span>
         </div>
-        <div style="padding: 5px;"></div>
+        <div style="padding: 5px; max-height: 200px; overflow-y: auto;">
+            <div show.bind="!tags_loaded">Loading...</div>
+            <div show.bind="tags_loaded && tags.length === 0">No tags found</div>
+            <ul class="list-unstyled" style="margin: 0;">
+                <li repeat.for="tag of tags"
+                    click.delegate="selectTag(tag)"
+                    dblclick.delegate="linkTag(tag)"
+                    style="cursor: pointer; padding: 1px 3px;"
+                    title="Tag ID: ${tag.id}">${tag.value}</li>
+            </ul>
+        </div>
     </div>
 </template>
