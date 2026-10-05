@@ -1,7 +1,7 @@
 import Context from '../app/context';
 import {inject, customElement, bindable} from 'aurelia-framework';
 import {REGIONS_SHOW_TAGS, LINK_TAG, EventSubscriber} from '../events/events';
-import {WEB_API_BASE} from '../utils/constants';
+import {WEBCLIENT} from '../utils/constants';
 import {sendRequest} from '../viewers/viewer/utils/Net';
 
 /**
@@ -61,15 +61,12 @@ export default class RegionsTags extends EventSubscriber {
         this.tags_loaded = false;
         sendRequest({
             server: this.context.server,
-            uri: this.context.getPrefixedURI(WEB_API_BASE) +
-                '/m/tagannotations/?limit=1000',
+            uri: this.context.getPrefixedURI(WEBCLIENT) +
+                '/api/tags/?orphaned=true&experimenter_id=-1',
             method: 'GET',
             success: (rsp) => {
                 let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
-                this.tags = (json.data || []).map(
-                    (t) => ({id: t['@id'], value: t['Value']}));
-                // sort tags by value
-                this.tags.sort((a, b) => a.value.localeCompare(b.value));
+                this.tags = this.parseTags(json);
                 this.tags_loaded = true;
             },
             error: () => {
@@ -79,10 +76,47 @@ export default class RegionsTags extends EventSubscriber {
         });
     }
 
+    parseTags(json) {
+        return (json.tags || []).map(
+            (t) => ({
+                id: t['id'],
+                value: t['value'],
+                tagset: t['set'],
+                expanded: false,
+                children: []
+            })).sort((a, b) => a.value.localeCompare(b.value));
+    }
+
+    /**
+     * Expands/collapses a tagset, loading its child tags on first expansion
+     * @param {Object} tagset the tagset
+     */
+    toggleTagset(tagset) {
+        console.log('toggleTagset', tagset);
+        tagset.expanded = !tagset.expanded;
+        if (!tagset.expanded || tagset.children_loaded) return;
+        sendRequest({
+            server: this.context.server,
+            uri: this.context.getPrefixedURI(WEBCLIENT) +
+                '/api/tags/?id=' + tagset.id,
+            method: 'GET',
+            success: (rsp) => {
+                let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
+                tagset.children = this.parseTags(json);
+                tagset.children_loaded = true;
+            },
+            error: () => {
+                tagset.children = [];
+            }
+        });
+    }
+
     /**
      * @param {{id: number, value: string}} tag the double-clicked tag
      */
     linkTag(tag) {
+        // We don't link tagsets, only individual tags
+        if (tag.tagset) return;
         this.context.publish(LINK_TAG, {tag_id: tag.id});
     }
 

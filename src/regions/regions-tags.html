@@ -6,7 +6,7 @@
         <div mousedown.trigger="onDragStart($event)"
              style="cursor: move; padding: 3px 5px; background: #e8e8e8;
                     user-select: none; display: flex; justify-content: space-between;">
-            <span>ROI Tags</span>
+            <span>Tags</span>
             <span style="cursor: pointer;" title="Close"
                   mousedown.trigger="$event.stopPropagation()"
                   click.delegate="hide()">&times;</span>
@@ -15,11 +15,26 @@
             <div show.bind="!tags_loaded">Loading...</div>
             <div show.bind="tags_loaded && tags.length === 0">No tags found</div>
             <ul class="list-unstyled" style="margin: 0;">
-                <li repeat.for="tag of tags"
-                    click.delegate="selectTag(tag)"
-                    dblclick.delegate="linkTag(tag)"
+                <li repeat.for="tag of tags" class="regions-tag-item"
                     style="cursor: pointer; padding: 1px 3px;"
-                    title="Tag ID: ${tag.id}">${tag.value}</li>
+                          click.delegate="selectTag(tag)"
+                          dblclick.delegate="linkTag(tag)"
+                          title="Tag ID: ${tag.id}">
+                    <span style="display: inline-block; width: 12px; cursor: pointer;"
+                          click.delegate="toggleTagset(tag)">
+                        <template if.bind="tag.tagset">${tag.expanded ? '&#9660;' : '&#9658;'}</template>
+                    </span>
+                    <span>${tag.value}</span>
+                    <ul if.bind="tag.tagset && tag.expanded" class="list-unstyled"
+                        style="margin: 0 0 0 30px;">
+                        <li repeat.for="child of tag.children"
+                            class="regions-tag-item"
+                            click.delegate="selectTag(child)"
+                            dblclick.delegate="linkTag(child)"
+                            style="cursor: pointer; padding: 1px 3px;"
+                            title="Tag ID: ${child.id}">${child.value}</li>
+                    </ul>
+                </li>
             </ul>
         </div>
     </div>
