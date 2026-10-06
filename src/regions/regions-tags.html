@@ -24,6 +24,7 @@
                           click.delegate="toggleTagset(tag)">
                         <template if.bind="tag.tagset">${tag.expanded ? '&#9660;' : '&#9658;'}</template>
                     </span>
+                    <span class="${tag.tagset ? 'regions-tagset-icon' : 'regions-tag-icon'}"></span>
                     <span>${tag.value}</span>
                     <ul if.bind="tag.tagset && tag.expanded" class="list-unstyled"
                         style="margin: 0 0 0 30px;">
@@ -32,7 +33,9 @@
                             click.delegate="selectTag(child)"
                             dblclick.delegate="linkTag(child)"
                             style="cursor: pointer; padding: 1px 3px;"
-                            title="Tag ID: ${child.id}">${child.value}</li>
+                            title="Tag ID: ${child.id}">
+                            <span class="regions-tag-icon"></span>${child.value}
+                        </li>
                     </ul>
                 </li>
             </ul>

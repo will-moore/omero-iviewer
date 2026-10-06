@@ -1082,6 +1082,21 @@ thumbnail-slider img {
 .regions-tag-item:hover {
     background-color: #e8eef2;
 }
+.regions-tag-icon,
+.regions-tagset-icon {
+    display: inline-block;
+    width: 17px;
+    height: 17px;
+    vertical-align: middle;
+    background-repeat: no-repeat;
+    background-size: 17px 17px;
+}
+.regions-tag-icon {
+    background-image: url('images/tag_icon.png');
+}
+.regions-tagset-icon {
+    background-image: url('images/tagset_icon.png');
+}
 .regions-table-row * {
     height: 100%;
     user-select: none;
