@@ -542,6 +542,8 @@ def image_data(request, image_id, conn=None, **kwargs):
     try:
         rv = imageMarshal(image)
 
+        rv['meta']['groupId'] = image.getDetails().getGroup().id
+
         # set roi count
         rv['roi_count'] = image.getROICount()
 

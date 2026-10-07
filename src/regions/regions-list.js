@@ -609,7 +609,7 @@ export default class RegionsList extends EventSubscriber {
         if (which === this.active_column && which !== "roi_tags") return;
         this.active_column = which;
         if (this.active_column == "roi_tags") {
-            this.context.publish(REGIONS_SHOW_TAGS, {});
+            this.context.publish(REGIONS_SHOW_TAGS, {group_id: this.regions_info.image_info.group_id});
             this.loadRoiTags();
         }
     }
@@ -704,6 +704,9 @@ export default class RegionsList extends EventSubscriber {
         roi_ids = Array.from(roi_ids);
 
         let untaggedRois = roi_ids.filter(roi_id => {
+            if (!this.roi_tags[roi_id]) {
+                return true;
+            }
             return !this.roi_tags[roi_id].some(tag => tag.id === params.tag_id && tag.link.permissions.canDelete);
         });
 

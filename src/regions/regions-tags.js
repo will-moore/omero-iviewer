@@ -34,6 +34,9 @@ export default class RegionsTags extends EventSubscriber {
     /** @type {Array.<{id: number, value: string}>} */
     selected_tags = [];
 
+    /** the group id associated with the tags */
+    group_id = null;
+
     /** which tab is currently showing: 'all' or 'selected' */
     active_tab = 'all';
 
@@ -43,7 +46,11 @@ export default class RegionsTags extends EventSubscriber {
 
     /** @type {Array.<string,function>} */
     sub_list = [
-        [REGIONS_SHOW_TAGS, () => this.show()],
+        [REGIONS_SHOW_TAGS, (args) => {
+            console.log("REGIONS_SHOW_TAGS args:", args);
+            this.group_id = args.group_id;
+            this.show();
+        }],
     ];
 
     /**
@@ -110,7 +117,7 @@ export default class RegionsTags extends EventSubscriber {
         sendRequest({
             server: this.context.server,
             uri: this.context.getPrefixedURI(WEBCLIENT) +
-                '/api/tags/?orphaned=true&experimenter_id=-1',
+                '/api/tags/?orphaned=true&experimenter_id=-1&group=' + this.group_id,
             method: 'GET',
             success: (rsp) => {
                 let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
@@ -273,7 +280,7 @@ export default class RegionsTags extends EventSubscriber {
         if (selected_tags.some((t) => typeof t === 'undefined')) {
             sendRequest({
                 server: this.context.server,
-                uri: this.context.getPrefixedURI(WEBCLIENT) + '/api/tags/?experimenter_id=-1',
+                uri: this.context.getPrefixedURI(WEBCLIENT) + '/api/tags/?experimenter_id=-1&group=' + this.group_id,
                 method: 'GET',
                 success: (rsp) => {
                     let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
