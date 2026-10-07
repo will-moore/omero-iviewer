@@ -43,9 +43,9 @@
                                 <span class="${tag.tagset ? 'regions-tagset-icon' : 'regions-tag-icon'}"></span>
                                 <span>${tag.value}</span>
                             </span>
-                            <button if.bind="!tag.tagset" class="btn btn-default btn-xs"
-                                    title="Add this Tag to the Selected Tags list"
-                                    click.delegate="selectTag(tag)">Select Tag</button>
+                            <button class="btn btn-default btn-xs"
+                                    title="Add ${tag.tagset ? 'All Tags' : 'this Tag'} to the Selected Tags list"
+                                    click.delegate="selectTag(tag)">Select ${tag.tagset ? 'All Tags' : 'Tag'}</button>
                         </div>
                         <ul if.bind="tag.tagset && tag.expanded" class="list-unstyled"
                             style="margin: 0 0 0 30px;">
@@ -70,11 +70,17 @@
                 <div show.bind="selected_tags.length === 0">No tags selected</div>
                 <ul class="list-unstyled" style="margin: 0;">
                     <li repeat.for="tag of selected_tags" class="regions-tag-item"
-                        style="cursor: pointer; padding: 1px 3px;"
+                        style="cursor: pointer; padding: 1px 3px; display: flex;
+                               align-items: center; justify-content: space-between;"
                         dblclick.delegate="linkTag(tag)"
                         title="Double-click to link/unlink this Tag to selected ROI(s)">
-                        <span class="regions-tag-icon"></span>
-                        <span>${tag.value}</span>
+                        <span style="display: flex; align-items: center; overflow: hidden;">
+                            <span class="regions-tag-icon"></span>
+                            <span>${tag.value}</span>
+                        </span>
+                        <span style="cursor: pointer; padding: 0 3px;"
+                              title="Remove this Tag from the Selected Tags list"
+                              click.delegate="deselectTag(tag)">&times;</span>
                     </li>
                 </ul>
             </template>

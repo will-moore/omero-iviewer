@@ -97,7 +97,7 @@ export default class RegionsTags extends EventSubscriber {
      * Expands/collapses a tagset, loading its child tags on first expansion
      * @param {Object} tagset the tagset
      */
-    toggleTagset(tagset) {
+    toggleTagset(tagset, callback) {
         console.log('toggleTagset', tagset);
         tagset.expanded = !tagset.expanded;
         if (!tagset.expanded || tagset.children_loaded) return;
@@ -110,9 +110,11 @@ export default class RegionsTags extends EventSubscriber {
                 let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
                 tagset.children = this.parseTags(json);
                 tagset.children_loaded = true;
+                if (callback) callback();
             },
             error: () => {
                 tagset.children = [];
+                if (callback) callback();
             }
         });
     }
@@ -139,10 +141,35 @@ export default class RegionsTags extends EventSubscriber {
      * @param {{id: number, value: string}} tag the tag to select
      */
     selectTag(tag) {
-        // We don't select tagsets, only individual tags
-        if (tag.tagset) return;
-        if (this.selected_tags.some((t) => t.id === tag.id)) return;
-        this.selected_tags.push(tag);
+        // If a tagset is passed, we instead select all child tags
+        if (tag.tagset) {
+            let addChildren = (children) => {
+                children.forEach((child) => {
+                    if (!this.selected_tags.some((t) => t.id === child.id)) {
+                        this.selected_tags.push(child);
+                    }
+                });
+            };
+            // If children are not loaded yet, they should be loaded first
+            if (!tag.children_loaded) {
+                this.toggleTagset(tag, () => {
+                    addChildren(tag.children);
+                });
+            } else {
+                addChildren(tag.children);
+            }
+        } else {
+            if (this.selected_tags.some((t) => t.id === tag.id)) return;
+            this.selected_tags.push(tag);
+        }
+    }
+
+    /**
+     * Removes a tag from the selected_tags list
+     * @param {{id: number, value: string}} tag the tag to deselect
+     */
+    deselectTag(tag) {
+        this.selected_tags = this.selected_tags.filter((t) => t.id !== tag.id);
     }
 
     hide() {
