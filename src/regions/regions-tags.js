@@ -24,6 +24,12 @@ export default class RegionsTags extends EventSubscriber {
     tags = [];
     tags_loaded = false;
 
+    /** @type {Array.<{id: number, value: string}>} */
+    selected_tags = [];
+
+    /** which tab is currently showing: 'all' or 'selected' */
+    active_tab = 'all';
+
     /** popup position in px (viewport coordinates) */
     left = window.innerWidth - 350;
     top = 100;
@@ -120,8 +126,23 @@ export default class RegionsTags extends EventSubscriber {
         this.context.publish(LINK_TAG, {tag_id: tag.id});
     }
 
+    /**
+     * Switches between the 'all' and 'selected' tabs
+     * @param {string} tab the tab to switch to
+     */
+    selectTab(tab) {
+        this.active_tab = tab;
+    }
+
+    /**
+     * Adds a tag to the selected_tags list (if not already present)
+     * @param {{id: number, value: string}} tag the tag to select
+     */
     selectTag(tag) {
-        console.log('Tag clicked', tag);
+        // We don't select tagsets, only individual tags
+        if (tag.tagset) return;
+        if (this.selected_tags.some((t) => t.id === tag.id)) return;
+        this.selected_tags.push(tag);
     }
 
     hide() {

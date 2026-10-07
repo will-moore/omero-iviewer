@@ -11,34 +11,73 @@
                   mousedown.trigger="$event.stopPropagation()"
                   click.delegate="hide()">&times;</span>
         </div>
+        <div style="display: flex; border-bottom: solid #ddd 1px; user-select: none;">
+            <div click.delegate="selectTab('all')"
+                 style="flex: 1; text-align: center; cursor: pointer; padding: 4px 2px;
+                        font-size: 11px;
+                        ${active_tab === 'all' ? 'background: #f8f8f8; font-weight: bold;' : 'background: #e8e8e8;'}">
+                All Tags [${tags.length}]
+            </div>
+            <div click.delegate="selectTab('selected')"
+                 style="flex: 1; text-align: center; cursor: pointer; padding: 4px 2px;
+                        font-size: 11px;
+                        ${active_tab === 'selected' ? 'background: #f8f8f8; font-weight: bold;' : 'background: #e8e8e8;'}">
+                Selected Tags [${selected_tags.length}]
+            </div>
+        </div>
         <div style="padding: 5px; max-height: 200px; overflow-y: auto;">
-            <div show.bind="!tags_loaded">Loading...</div>
-            <div show.bind="tags_loaded && tags.length === 0">No tags found</div>
-            <ul class="list-unstyled" style="margin: 0;">
-                <li repeat.for="tag of tags" class="regions-tag-item"
-                    style="cursor: pointer; padding: 1px 3px;"
-                          click.delegate="selectTag(tag)"
-                          dblclick.delegate="linkTag(tag)"
-                          title="Tag ID: ${tag.id}">
-                    <span style="display: inline-block; width: 12px; cursor: pointer;"
-                          click.delegate="toggleTagset(tag)">
-                        <template if.bind="tag.tagset">${tag.expanded ? '&#9660;' : '&#9658;'}</template>
-                    </span>
-                    <span class="${tag.tagset ? 'regions-tagset-icon' : 'regions-tag-icon'}"></span>
-                    <span>${tag.value}</span>
-                    <ul if.bind="tag.tagset && tag.expanded" class="list-unstyled"
-                        style="margin: 0 0 0 30px;">
-                        <li repeat.for="child of tag.children"
-                            class="regions-tag-item"
-                            click.delegate="selectTag(child)"
-                            dblclick.delegate="linkTag(child)"
-                            style="cursor: pointer; padding: 1px 3px;"
-                            title="Tag ID: ${child.id}">
-                            <span class="regions-tag-icon"></span>${child.value}
-                        </li>
-                    </ul>
-                </li>
-            </ul>
+            <template if.bind="active_tab === 'all'">
+                <div show.bind="!tags_loaded">Loading...</div>
+                <div show.bind="tags_loaded && tags.length === 0">No tags found</div>
+                <ul class="list-unstyled" style="margin: 0;">
+                    <li repeat.for="tag of tags" class="regions-tag-item"
+                        style="cursor: pointer; padding: 1px 3px; display: flex; flex-direction: column;"
+                              dblclick.delegate="linkTag(tag)"
+                              title="Double-click to link/unlink this Tag to selected ROI(s)">
+                        <div style="display: flex; flex-direction: row; width: 100%; align-items: center; justify-content: space-between;">
+                            <span style="display: flex; align-items: center; overflow: hidden;">
+                                <span style="display: inline-block; width: 12px; cursor: pointer;"
+                                    click.delegate="toggleTagset(tag)">
+                                    <template if.bind="tag.tagset">${tag.expanded ? '&#9660;' : '&#9658;'}</template>
+                                </span>
+                                <span class="${tag.tagset ? 'regions-tagset-icon' : 'regions-tag-icon'}"></span>
+                                <span>${tag.value}</span>
+                            </span>
+                            <button if.bind="!tag.tagset" class="btn btn-default btn-xs"
+                                    title="Add this Tag to the Selected Tags list"
+                                    click.delegate="selectTag(tag)">Select Tag</button>
+                        </div>
+                        <ul if.bind="tag.tagset && tag.expanded" class="list-unstyled"
+                            style="margin: 0 0 0 30px;">
+                            <li repeat.for="child of tag.children"
+                                class="regions-tag-item"
+                                dblclick.delegate="linkTag(child)"
+                                style="cursor: pointer; padding: 1px 3px; display: flex;
+                                       align-items: center; justify-content: space-between;"
+                                title="Tag ID: ${child.id}">
+                                <span style="display: flex; align-items: center; overflow: hidden;">
+                                    <span class="regions-tag-icon"></span>${child.value}
+                                </span>
+                                <button class="btn btn-default btn-xs"
+                                        title="Add this Tag to the Selected Tags list"
+                                        click.delegate="selectTag(child)">Select Tag</button>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </template>
+            <template if.bind="active_tab === 'selected'">
+                <div show.bind="selected_tags.length === 0">No tags selected</div>
+                <ul class="list-unstyled" style="margin: 0;">
+                    <li repeat.for="tag of selected_tags" class="regions-tag-item"
+                        style="cursor: pointer; padding: 1px 3px;"
+                        dblclick.delegate="linkTag(tag)"
+                        title="Double-click to link/unlink this Tag to selected ROI(s)">
+                        <span class="regions-tag-icon"></span>
+                        <span>${tag.value}</span>
+                    </li>
+                </ul>
+            </template>
         </div>
     </div>
 </template>
