@@ -960,7 +960,33 @@ def shape_stats(request, conn=None, **kwargs):
 
 @login_required()
 def link_annotations(request, conn=None, **kwargs):
-    print("link_annotations", request)
+    if request.method == 'DELETE':
+        # DELETE /link_annotations/?roi=1&annotation=56
+        # remove the link between the Tag and the ROI
+        roi_id = request.GET.get('roi')
+        ann_id = request.GET.get('annotation')
+        if roi_id is None or ann_id is None:
+            return JsonResponse(
+                {"errors": ["Need to specify roi and annotation!"]})
+
+        links = conn.getAnnotationLinks(
+            "roi", parent_ids=[roi_id], ann_ids=[ann_id])
+        removed = []
+        errors = []
+        for link in links:
+            try:
+                conn.deleteObject(link._obj)
+                removed.append(ann_id)
+            except Exception as ex:
+                errors.append(str(ex))
+
+        return JsonResponse({
+            "removed": removed,
+            "roi_id": roi_id,
+            "ann_id": ann_id,
+            "errors": errors
+        })
+
     if not request.method == 'POST':
         # GET /link_annotations/?roi=1&roi=2
         # load Tags... -> {'1':{'tags':[{'id':56, 'textValue':'myTag'}], '2':{'tags':[]}}}
@@ -977,32 +1003,26 @@ def link_annotations(request, conn=None, **kwargs):
 
     ann_ids = request.POST.getlist('annotation')
     roi_ids = request.POST.getlist('roi')
-    print("ann_ids", ann_ids, "roi_ids", roi_ids)
 
     json_data = json.loads(request.body)
     ann_ids = json_data["annotations"]
     roi_ids = json_data["rois"]
-    print("json_data", json_data)
-    print("ann_ids", ann_ids, "roi_ids", roi_ids)
 
     links = 0
     added = []
     errors = []
     for roi_id in roi_ids:
         roi = conn.getObject("Roi", roi_id)
-        print("roi", roi)
         if roi is None:
             return JsonResponse({"errors": ["Could not find roi!"]})
 
         for ann_id in ann_ids:
             ann = conn.getObject("Annotation", ann_id)
-            print("ann", ann)
             if ann is None:
                 return JsonResponse({"errors": ["Could not find associated annotation!"]})
             
             try:
                 r = roi.linkAnnotation(ann)
-                print("r", r)
                 links += 1
                 added.append({"id": ann.id, "textValue": ann.textValue})
             except Exception as ex:

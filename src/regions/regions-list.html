@@ -199,7 +199,11 @@
                             <span show.bind="roi_tags_loaded">
                                 <span if.bind="roi_tags[roi_id]">
                                     <template repeat.for="t of roi_tags[roi_id]">
-                                        <div title="Tag: ${t.id}" style="border: solid #ddd 1px; background: #eee; border-radius: 5px; font-size:10px; padding: 2px; display:inline-block">${t.textValue}</div>
+                                        <div title="Tag: ${t.id}" class="tag">
+                                            ${t.textValue}
+                                            <button class="removeTag"
+                                                    click.delegate="handleRemoveTag(roi_id, t.id)">-</button>
+                                        </div>
                                     </template>
                                 </span>
                             </span>

@@ -705,4 +705,16 @@ export default class RegionsList extends EventSubscriber {
             "success": () => this.loadRoiTags(),
         });
     }
+
+    // Handle click on the removeTag button: unlink the Tag from the ROI
+    handleRemoveTag(roi_id, ann_id) {
+        sendRequest({
+            "server" : this.context.server,
+            "uri" : `/iviewer/link_annotations/?roi=${roi_id}&annotation=${ann_id}`,
+            "method" : 'DELETE',
+            "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
+            "jsonp" : false,
+            "success": () => this.loadRoiTags(roi_id),
+        });
+    }
 }
