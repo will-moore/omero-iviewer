@@ -511,7 +511,6 @@ span.sp-thumb-el {
 .col-splitter {
     position:relative;
     flex: 5px 0 0;
-    z-index: 10;
     background-color: #e7e7e7;
 }
 
@@ -1090,6 +1089,7 @@ thumbnail-slider img {
     vertical-align: middle;
     background-repeat: no-repeat;
     background-size: 17px 17px;
+    margin-right: 3px;
 }
 .regions-tag-icon {
     background-image: url('images/tag_icon.png');

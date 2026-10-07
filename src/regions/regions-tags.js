@@ -5,6 +5,9 @@ import {REGIONS_SHOW_TAGS, LINK_TAG, EventSubscriber} from '../events/events';
 import {WEBCLIENT, TABS} from '../utils/constants';
 import {sendRequest} from '../viewers/viewer/utils/Net';
 
+/** localStorage key used to persist the selected_tags ids (in order) */
+const SELECTED_TAGS_STORAGE_KEY = 'iviewer_selected_tags';
+
 /**
  * A small, initially hidden, draggable popup for ROI tags
  * @extends {EventSubscriber}
@@ -32,7 +35,7 @@ export default class RegionsTags extends EventSubscriber {
     active_tab = 'all';
 
     /** popup position in px (viewport coordinates) */
-    left = window.innerWidth - 350;
+    right = 30;
     top = 100;
 
     /** @type {Array.<string,function>} */
@@ -110,10 +113,12 @@ export default class RegionsTags extends EventSubscriber {
                 let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
                 this.tags = this.parseTags(json);
                 this.tags_loaded = true;
+                this.restoreSelectedTags();
             },
             error: () => {
                 this.tags = [];
                 this.tags_loaded = true;
+                this.restoreSelectedTags();
             }
         });
     }
@@ -190,6 +195,7 @@ export default class RegionsTags extends EventSubscriber {
                         this.selected_tags.push(child);
                     }
                 });
+                this.saveSelectedTags();
             };
             // If children are not loaded yet, they should be loaded first
             if (!tag.children_loaded) {
@@ -202,6 +208,7 @@ export default class RegionsTags extends EventSubscriber {
         } else {
             if (this.selected_tags.some((t) => t.id === tag.id)) return;
             this.selected_tags.push(tag);
+            this.saveSelectedTags();
         }
     }
 
@@ -211,6 +218,61 @@ export default class RegionsTags extends EventSubscriber {
      */
     deselectTag(tag) {
         this.selected_tags = this.selected_tags.filter((t) => t.id !== tag.id);
+        this.saveSelectedTags();
+    }
+
+    /**
+     * Persists the ids of the selected_tags (in order) to localStorage
+     */
+    saveSelectedTags() {
+        try {
+            localStorage.setItem(
+                SELECTED_TAGS_STORAGE_KEY,
+                JSON.stringify(this.selected_tags.map((t) => t.id)));
+        } catch (e) {
+            // localStorage may be unavailable/full, nothing we can do
+        }
+    }
+
+    /**
+     * Restores the selected_tags list from the ids previously stored in
+     * localStorage, preserving their order and matching them against the
+     * currently loaded tags
+     */
+    restoreSelectedTags() {
+        let ids = [];
+        try {
+            ids = JSON.parse(localStorage.getItem(SELECTED_TAGS_STORAGE_KEY)) || [];
+        } catch (e) {
+            ids = [];
+        }
+        if (!Array.isArray(ids) || ids.length === 0) {
+            this.selected_tags = [];
+            return;
+        }
+        // Use the loaded tags to reconstruct the selected_tags list from IDs
+        let selected_tags = ids.map((id) => this.tags.find((t) => t.id === id));
+
+        // If any of the selected tags are undefined (e.g. from in a Tagset that hasn't been loaded), we need to fetch ALL tags from the server
+        if (selected_tags.some((t) => typeof t === 'undefined')) {
+            sendRequest({
+                server: this.context.server,
+                uri: this.context.getPrefixedURI(WEBCLIENT) + '/api/tags/?experimenter_id=-1',
+                method: 'GET',
+                success: (rsp) => {
+                    let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
+                    let allTags = this.parseTags(json);
+                    selected_tags = ids.map((id) => allTags.find((t) => t.id === id)).filter((t) => typeof t !== 'undefined');
+                    this.selected_tags = selected_tags;
+                },
+                error: () => {
+                    console.error('Failed to fetch all tags from the server');
+                }
+            });
+        } else {
+            // All tags were found
+            this.selected_tags = selected_tags;
+        }
     }
 
     hide() {
@@ -223,7 +285,7 @@ export default class RegionsTags extends EventSubscriber {
      */
     onDragStart(event) {
         if (event.button !== 0) return true;
-        this.dragOffsetX = event.clientX - this.left;
+        this.dragOffsetX = (window.innerWidth - this.right) - event.clientX;
         this.dragOffsetY = event.clientY - this.top;
         document.addEventListener('mousemove', this.onDragMove);
         document.addEventListener('mouseup', this.onDragEnd);
@@ -232,10 +294,10 @@ export default class RegionsTags extends EventSubscriber {
     }
 
     onDragMove(event) {
-        const maxLeft = Math.max(0, window.innerWidth - 40);
+        const maxRight = Math.max(0, window.innerWidth - 330);
         const maxTop = Math.max(0, window.innerHeight - 30);
-        this.left = Math.min(Math.max(0, event.clientX - this.dragOffsetX), maxLeft);
-        this.top = Math.min(Math.max(0, event.clientY - this.dragOffsetY), maxTop);
+        this.right = Math.min(Math.max(0, window.innerWidth - (event.clientX + this.dragOffsetX)), maxRight);
+        this.top = Math.min(Math.max(40, event.clientY - this.dragOffsetY), maxTop);
     }
 
     onDragEnd() {

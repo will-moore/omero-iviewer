@@ -1,8 +1,8 @@
 <template>
     <div show.bind="visible"
-         style="position: fixed; z-index: 1000; width: 250px; min-height: 100px;
+         style="position: fixed; z-index: 1000; width: 300px; min-height: 100px;
                 background: #f8f8f8; border: solid #ddd 1px; border-radius: 3px;
-                box-shadow: 2px 2px 5px #ccc; left: ${left}px; top: ${top}px;">
+                box-shadow: 2px 2px 5px #ccc; right: ${right}px; top: ${top}px;">
         <div mousedown.trigger="onDragStart($event)"
              style="cursor: move; padding: 3px 5px; background: #e8e8e8;
                     user-select: none; display: flex; justify-content: space-between;">
@@ -36,7 +36,7 @@
                               title="Double-click to link/unlink this Tag to selected ROI(s)">
                         <div style="display: flex; flex-direction: row; width: 100%; align-items: center; justify-content: space-between;">
                             <span style="display: flex; align-items: center; overflow: hidden;">
-                                <span style="display: inline-block; width: 12px; cursor: pointer;"
+                                <span style="display: inline-block; width: 14px; cursor: pointer; position: relative; left: -2px;"
                                     click.delegate="toggleTagset(tag)">
                                     <template if.bind="tag.tagset">${tag.expanded ? '&#9660;' : '&#9658;'}</template>
                                 </span>
@@ -76,7 +76,8 @@
                         title="Double-click to link/unlink this Tag to selected ROI(s)">
                         <span style="display: flex; align-items: center; overflow: hidden;">
                             <!-- Number 1-9, 10th tag gets 0 -->
-                            <span style="width: 20px; display: inline-block; text-align: center; border: solid grey 1px; border-radius: 5px;"
+                            <span style="width: 20px; display: inline-block; text-align: center;
+                                border: solid grey 1px; border-radius: 5px; margin-right: 6px;"
                                 title="Shortcut key to link/unlink this Tag to selected ROI(s)">
                                 ${$index < 10 ? ($index + 1) % 10 : ''}
                             </span>
