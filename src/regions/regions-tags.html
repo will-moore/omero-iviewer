@@ -11,6 +11,8 @@
                   mousedown.trigger="$event.stopPropagation()"
                   click.delegate="hide()">&times;</span>
         </div>
+
+        <!-- We have two tabs: All Tags and Selected Tags -->
         <div style="display: flex; border-bottom: solid #ddd 1px; user-select: none;">
             <div click.delegate="selectTab('all')"
                  style="flex: 1; text-align: center; cursor: pointer; padding: 4px 2px;
@@ -25,12 +27,24 @@
                 Selected Tags [${selected_tags.length}]
             </div>
         </div>
-        <div style="padding: 5px; max-height: 200px; overflow-y: auto;">
+
+        <!-- Filter input for the "All Tags" tab -->
+        <div if.bind="active_tab === 'all'" style="padding: 5px">
+            <input type="text" class="form-control input-sm"
+                   placeholder="Filter Tags..."
+                   style="width: 100%; box-sizing: border-box;"
+                   value.bind="tags_filter & debounce:200" />
+        </div>
+        <!-- The "All Tags" scrollable list -->
+        <div style="padding: 0 5px 5px 5px; max-height: 200px; overflow-y: auto;">
             <template if.bind="active_tab === 'all'">
                 <div show.bind="!tags_loaded">Loading...</div>
                 <div show.bind="tags_loaded && tags.length === 0">No tags found</div>
+                <div show.bind="tags_loaded && tags.length > 0 && filtered_tags.length === 0">
+                    No matching tags
+                </div>
                 <ul class="list-unstyled" style="margin: 0;">
-                    <li repeat.for="tag of tags" class="regions-tag-item"
+                    <li repeat.for="tag of filtered_tags" class="regions-tag-item"
                         style="cursor: pointer; padding: 1px 3px; display: flex; flex-direction: column;"
                               dblclick.delegate="linkTag(tag)"
                               title="Double-click to link/unlink this Tag to selected ROI(s)">
@@ -66,6 +80,8 @@
                     </li>
                 </ul>
             </template>
+
+            <!-- The "Selected Tags" tab content -->
             <template if.bind="active_tab === 'selected'">
                 <div show.bind="selected_tags.length === 0">No tags selected</div>
                 <ul class="list-unstyled" style="margin: 0;">

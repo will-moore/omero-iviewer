@@ -1,5 +1,5 @@
 import Context from '../app/context';
-import {inject, customElement, bindable} from 'aurelia-framework';
+import {inject, customElement, bindable, computedFrom} from 'aurelia-framework';
 import Ui from '../utils/ui';
 import {REGIONS_SHOW_TAGS, LINK_TAG, EventSubscriber} from '../events/events';
 import {WEBCLIENT, TABS} from '../utils/constants';
@@ -27,6 +27,9 @@ export default class RegionsTags extends EventSubscriber {
     /** @type {Array.<{id: number, value: string}>} */
     tags = [];
     tags_loaded = false;
+
+    /** text typed into the "All Tags" filter input */
+    tags_filter = '';
 
     /** @type {Array.<{id: number, value: string}>} */
     selected_tags = [];
@@ -180,6 +183,19 @@ export default class RegionsTags extends EventSubscriber {
      */
     selectTab(tab) {
         this.active_tab = tab;
+    }
+
+    /**
+     * The tags list filtered by the text typed into the "All Tags" filter
+     * input (case-insensitive substring match on the tag's value)
+     * @return {Array.<Object>} the filtered tags
+     */
+    @computedFrom('tags', 'tags_filter')
+    get filtered_tags() {
+        let filter = (this.tags_filter || '').trim().toLowerCase();
+        if (filter === '') return this.tags;
+        return this.tags.filter(
+            (tag) => tag.value.toLowerCase().includes(filter));
     }
 
     /**
