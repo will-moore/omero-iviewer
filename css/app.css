@@ -1137,16 +1137,11 @@ thumbnail-slider img {
     font-size: 0.9em;
     text-shadow: 0 1px 0 rgba(255, 255, 255, .8);
     display: inline-block;
-    padding: 0.3em 0.4em 0.3em 0.7em;
+    padding: 0.4em 0.5em;
     line-height: 0.9em;
     border-radius: 30px;
     border: solid 1px hsl(205, 40%, 60%);
-    background-image: -webkit-gradient(linear, left bottom, left top, from(hsl(205, 65%, 85%)), to(hsl(205, 60%, 90%)));
-    background-image: -moz-linear-gradient(top, hsl(205,60%,90%) 0%, hsl(205,35%,85%) 100%);
-    background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, hsl(205, 60%, 90%)), color-stop(100%, hsl(205, 35%, 85%)));
-    background-image: linear-gradient(top, hsl(205, 60%, 90%) 0%, hsl(205, 35%, 85%) 100%);
-    background-image: -o-linear-gradient(top, hsl(205,60%,90%) 0%,hsl(205,35%,85%) 100%);
-    background-image: -ms-linear-gradient(top, hsl(205,60%,90%) 0%,hsl(205,35%,85%) 100%);
+    background-image: linear-gradient(to bottom, hsl(205, 60%, 90%) 0%, hsl(205, 35%, 85%) 100%);
     color: hsl(205, 30%, 35%);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
     height: fit-content;
@@ -1156,6 +1151,7 @@ thumbnail-slider img {
     font-weight: bold;
     border: none;
     background: none;
+    padding: 0 3px;
 }
 
 .loading-text {

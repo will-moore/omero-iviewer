@@ -664,14 +664,29 @@ export default class RegionsList extends EventSubscriber {
             "method" : 'GET',
             "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
             "success": (rsp)=>{
-                console.log("success", rsp);
                 let rsp_json = JSON.parse(rsp);
-                console.log('rsp_json', rsp_json);
-                Object.entries(rsp_json).forEach((id_tags) => {
-                    let roi_id = id_tags[0];
-                    let data = id_tags[1];
-                    this.roi_tags[roi_id] = data.tags;
-                });   
+
+                // clear existing tags, create lists...
+                roi_ids.forEach(roi_id => {
+                    this.roi_tags[roi_id] = [];
+                });
+
+                // make an object of eid: experimenter
+                var experimenters = rsp_json.experimenters.reduce(function(prev, exp){
+                    prev[exp.id + ""] = exp;
+                    return prev;
+                }, {});
+
+                // Populate experimenters within tags
+                // And do other tag marshalling
+                rsp_json.data.forEach((tag) => {
+                    let roi_id = tag.link.parent.id;
+                    tag.owner = experimenters[tag.owner.id];
+                    if (tag.link && tag.link.owner) {
+                        tag.link.owner = experimenters[tag.link.owner.id];
+                    }
+                    this.roi_tags[roi_id].push(tag);
+                });
                 this.roi_tags_loaded = true;
             },
         };

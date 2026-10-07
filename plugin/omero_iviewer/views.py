@@ -958,6 +958,42 @@ def shape_stats(request, conn=None, **kwargs):
     except Exception as stats_call_exception:
         return JsonResponse({"error": repr(stats_call_exception)})
 
+
+def marshal_tag(annotation, link):
+    ann = {}
+    ann["textValue"] = unwrap(annotation.textValue)
+    ann["id"] = annotation.id.val
+    ann["ns"] = unwrap(annotation.ns)
+    ann["name"] = unwrap(annotation.name)
+    ann["description"] = unwrap(annotation.description)
+    ann["owner"] = {"id": annotation.details.owner.id.val}
+    ann["link"] = {}
+    ann["link"]["id"] = link.id.val
+    ann["link"]["owner"] = {"id": link.details.owner.id.val}
+    if link.parent.isLoaded():
+        ann["link"]["parent"] = {
+            "id": link.parent.id.val,
+            "class": link.parent.__class__.__name__,
+        }
+        p = link.details.permissions
+        ann["link"]["permissions"] = {
+            "canDelete": p.canDelete(),
+            "canAnnotate": p.canAnnotate(),
+            "canLink": p.canLink(),
+            "canEdit": p.canEdit(),
+        }
+    return ann
+
+
+def _marshal_exp(experimenter):
+    exp = {}
+    exp["id"] = experimenter.id.val
+    exp["omeName"] = experimenter.omeName.val
+    exp["firstName"] = unwrap(experimenter.firstName)
+    exp["lastName"] = unwrap(experimenter.lastName)
+    return exp
+
+
 @login_required()
 def link_annotations(request, conn=None, **kwargs):
     if request.method == 'DELETE':
@@ -990,16 +1026,22 @@ def link_annotations(request, conn=None, **kwargs):
     if not request.method == 'POST':
         # GET /link_annotations/?roi=1&roi=2
         # load Tags... -> {'1':{'tags':[{'id':56, 'textValue':'myTag'}], '2':{'tags':[]}}}
-        anns_by_roi_id = {}
         roi_ids = request.GET.getlist('roi')
-        for roi_id in roi_ids:
-            roi = conn.getObject("Roi", roi_id)
-            tags = []
-            for ann in roi.listAnnotations():
-                if isinstance(ann._obj, omero.model.TagAnnotation):
-                    tags.append({'id': ann.id, 'textValue': ann.getTextValue()})
-            anns_by_roi_id[roi_id] = {"tags": tags}
-        return JsonResponse(anns_by_roi_id)
+        exps = {}
+        tags = []
+        # for ann in roi.listAnnotations():
+        for link in conn.getAnnotationLinks("roi", parent_ids=roi_ids):
+            ann = link.getChild()._obj
+            link = link._obj
+            if not isinstance(ann, omero.model.TagAnnotation):
+                continue
+            d = marshal_tag(ann, link)
+            tags.append(d)
+            exps[link.details.owner.id.val] = link.details.owner
+            exps[ann.details.owner.id.val] = ann.details.owner
+
+        exps = [_marshal_exp(exp) for exp in exps.values()]
+        return JsonResponse({"data": tags, "experimenters": exps})
 
     ann_ids = request.POST.getlist('annotation')
     roi_ids = request.POST.getlist('roi')

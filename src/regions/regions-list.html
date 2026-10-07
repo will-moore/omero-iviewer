@@ -158,9 +158,7 @@
                         class="regions-table-row"
                         css="${shape.selected ? 'background-color: #d0d0ff;' : ''}
                              ${shape.deleted ? 'color: red;' :
-                                (shape.modified ? 'color: blue;' : '')}
-                             ${hasPermissions(shape) && shape.type !== 'mask' ?
-                                '' : 'opacity: 0.5'}"
+                                (shape.modified ? 'color: blue;' : '')}"
                         click.delegate="selectShape(shape.shape_id, shape.selected, $event)">
                         <div class="regions-table-col roi-toggle"></div>
                         <div class="regions-table-col shape-show">
@@ -199,9 +197,9 @@
                             <span show.bind="roi_tags_loaded">
                                 <span if.bind="roi_tags[roi_id]">
                                     <template repeat.for="t of roi_tags[roi_id]">
-                                        <div title="Tag: ${t.id}" class="tag">
+                                        <div title="Added By ${t.link.owner.firstName} ${t.link.owner.lastName}, Tag: ${t.id}" class="tag">
                                             ${t.textValue}
-                                            <button class="removeTag"
+                                            <button if.bind="t.link.permissions.canDelete" class="removeTag"
                                                     click.delegate="handleRemoveTag(roi_id, t.id)">-</button>
                                         </div>
                                     </template>
