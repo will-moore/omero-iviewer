@@ -1,7 +1,8 @@
 import Context from '../app/context';
 import {inject, customElement, bindable} from 'aurelia-framework';
+import Ui from '../utils/ui';
 import {REGIONS_SHOW_TAGS, LINK_TAG, EventSubscriber} from '../events/events';
-import {WEBCLIENT} from '../utils/constants';
+import {WEBCLIENT, TABS} from '../utils/constants';
 import {sendRequest} from '../viewers/viewer/utils/Net';
 
 /**
@@ -49,6 +50,26 @@ export default class RegionsTags extends EventSubscriber {
         this.onDragEnd = this.onDragEnd.bind(this);
     }
 
+    /** keyboard actions for the popup */
+    key_actions = [];
+
+    /** Overridden aurelia lifecycle method */
+    attached() {
+        let key_actions = [];
+        for (let i = 0; i <= 9; i++) {
+            key_actions.push({ key: i.toString(), func: this.handleKeyAction, ctrl: false});
+        }
+        this.key_actions = key_actions;
+
+        Ui.registerKeyHandlers(this.context, key_actions, TABS.ROIS, this);
+    }
+
+    /** called when the view and its elemetns are detached */
+    detached() {
+        this.key_actions.map(
+            (action) => this.context.removeKeyListener(action.key, TABS.ROIS));
+    }
+
     bind() {
         this.subscribe();
     }
@@ -61,6 +82,21 @@ export default class RegionsTags extends EventSubscriber {
     show() {
         this.visible = true;
         this.loadTags();
+    }
+
+    /**
+     * Handle keys 0-9 only - added in attached() above
+     * @param {{key: string}} args 
+     */
+    handleKeyAction(args) {
+        let index = parseInt(args.key, 10) - 1;
+        if (index < 0) {
+            index = 9;
+        }
+        if (index >= this.selected_tags.length) {
+            return;
+        }
+        this.linkTag(this.selected_tags[index]);
     }
 
     loadTags() {
@@ -90,7 +126,12 @@ export default class RegionsTags extends EventSubscriber {
                 tagset: t['set'],
                 expanded: false,
                 children: []
-            })).sort((a, b) => a.value.localeCompare(b.value));
+            })).sort((a, b) => {
+                // tagset should come before individual tags
+                if (a.tagset && !b.tagset) return -1;
+                if (!a.tagset && b.tagset) return 1;
+                return a.value.localeCompare(b.value);
+            });
     }
 
     /**
