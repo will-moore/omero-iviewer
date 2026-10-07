@@ -604,7 +604,6 @@ export default class RegionsList extends EventSubscriber {
      * @memberof RegionsList
      */
     showColumn(which) {
-        console.log("showColumn", which)
         if (typeof which !== 'string' || which.length === 0) return;
         // the tags popup can be closed independently, so always re-show it
         if (which === this.active_column && which !== "roi_tags") return;
@@ -695,7 +694,6 @@ export default class RegionsList extends EventSubscriber {
 
     // Handle LINK_TAG: link the Tag to the ROIs of the selected shapes
     handleAddTag(params) {
-        console.log('handleAddTag', params);
         let roi_ids = new Set();
         this.regions_info.selected_shapes.forEach((shape_id) => {
             let roi_id = parseInt(String(shape_id).split(':')[0], 10);
@@ -705,31 +703,49 @@ export default class RegionsList extends EventSubscriber {
         if (roi_ids.size === 0) return;
         roi_ids = Array.from(roi_ids);
 
-        let postContent = {
-            "annotations" : [params.tag_id],
-            "rois" : roi_ids
-        };
-        console.log('postContent', postContent);
-        sendRequest({
-            "content" : JSON.stringify(postContent),
-            "server" : this.context.server,
-            "uri" : "/iviewer/link_annotations/",
-            "method" : 'POST',
-            "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
-            "jsonp" : false,
-            "success": () => this.loadRoiTags(),
+        let untaggedRois = roi_ids.filter(roi_id => {
+            return !this.roi_tags[roi_id].some(tag => tag.id === params.tag_id && tag.link.permissions.canDelete);
         });
+
+        // If any of the selected ROIs do not already have this tag, link the tag to those ROIs
+        if (untaggedRois.length > 0) {
+            let postContent = {
+                "annotations" : [params.tag_id],
+                "rois" : untaggedRois
+            };
+            sendRequest({
+                "content" : JSON.stringify(postContent),
+                "server" : this.context.server,
+                "uri" : "/iviewer/link_annotations/",
+                "method" : 'POST',
+                "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
+                "jsonp" : false,
+                "success": () => this.loadRoiTags(),
+            });
+        } else {
+            // All selected ROIs already have this tag, so we REMOVE the tag from those ROIs
+            let link_ids_to_remove = [];
+            roi_ids.forEach((roi_id) => {
+                let tag = this.roi_tags[roi_id].find(tag => tag.id === params.tag_id && tag.link.permissions.canDelete);
+                if (tag) {
+                    link_ids_to_remove.push(tag.link.id);
+                }
+            });
+            if (link_ids_to_remove.length > 0) {
+                this.handleRemoveTag(link_ids_to_remove);
+            }
+        }
     }
 
     // Handle click on the removeTag button: unlink the Tag from the ROI
-    handleRemoveTag(roi_id, ann_id) {
+    handleRemoveTag(link_ids) {
         sendRequest({
             "server" : this.context.server,
-            "uri" : `/iviewer/link_annotations/?roi=${roi_id}&annotation=${ann_id}`,
+            "uri" : `/iviewer/link_annotations/?link=${link_ids.join('&link=')}`,
             "method" : 'DELETE',
             "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
             "jsonp" : false,
-            "success": () => this.loadRoiTags(roi_id),
+            "success": () => this.loadRoiTags(),
         });
     }
 }

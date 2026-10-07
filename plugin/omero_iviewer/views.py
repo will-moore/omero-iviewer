@@ -996,30 +996,20 @@ def _marshal_exp(experimenter):
 
 @login_required()
 def link_annotations(request, conn=None, **kwargs):
+    errors = []
     if request.method == 'DELETE':
-        # DELETE /link_annotations/?roi=1&annotation=56
+        # DELETE /link_annotations/?link=1&link=2
         # remove the link between the Tag and the ROI
-        roi_id = request.GET.get('roi')
-        ann_id = request.GET.get('annotation')
-        if roi_id is None or ann_id is None:
+        link_ids = request.GET.getlist('link')
+        if not link_ids:
             return JsonResponse(
-                {"errors": ["Need to specify roi and annotation!"]})
-
-        links = conn.getAnnotationLinks(
-            "roi", parent_ids=[roi_id], ann_ids=[ann_id])
-        removed = []
-        errors = []
-        for link in links:
-            try:
-                conn.deleteObject(link._obj)
-                removed.append(ann_id)
-            except Exception as ex:
-                errors.append(str(ex))
-
+                {"errors": ["Need to specify link(s)"]})
+        try:
+            conn.deleteObjects("RoiAnnotationLink", link_ids, wait=True)
+        except Exception as ex:
+            errors.append(str(ex))
         return JsonResponse({
-            "removed": removed,
-            "roi_id": roi_id,
-            "ann_id": ann_id,
+            "link_ids": link_ids,
             "errors": errors
         })
 
@@ -1052,7 +1042,6 @@ def link_annotations(request, conn=None, **kwargs):
 
     links = 0
     added = []
-    errors = []
     for roi_id in roi_ids:
         roi = conn.getObject("Roi", roi_id)
         if roi is None:
