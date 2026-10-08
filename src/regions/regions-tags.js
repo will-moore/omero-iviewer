@@ -286,6 +286,86 @@ export default class RegionsTags extends EventSubscriber {
         this.saveSelectedTags();
     }
 
+    /** index of the selected_tags entry currently being dragged (or null) */
+    dragTagIndex = null;
+
+    /** index of the selected_tags entry currently being dragged over (or null) */
+    dragOverIndex = null;
+
+    /**
+     * Starts dragging a row in the Selected Tags list for reordering
+     * @param {DragEvent} event
+     * @param {number} index the index of the row in selected_tags
+     */
+    onTagDragStart(event, index) {
+        this.dragTagIndex = index;
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            // Firefox requires data to be set for the drag to start
+            try {
+                event.dataTransfer.setData('text/plain', String(index));
+            } catch (e) {
+                // ignore, not all browsers allow this
+            }
+        }
+        // IMPORTANT: Aurelia's ".trigger" binding command calls
+        // event.preventDefault() on the bound event unless the handler
+        // explicitly returns true (see aurelia-binding Listener.callSource).
+        // Calling preventDefault() on "dragstart" cancels the native drag
+        // operation entirely, so this handler (and the other drag handlers
+        // below) must return true to opt out of that behaviour.
+        return true;
+    }
+
+    /**
+     * Called continuously while dragging over a row, used to show
+     * an insertion indicator and allow dropping
+     * @param {DragEvent} event
+     * @param {number} index the index of the row being dragged over
+     */
+    onTagDragOver(event, index) {
+        if (this.dragTagIndex === null) return true;
+        // preventDefault() on dragover is required to allow a drop here
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+        this.dragOverIndex = index;
+        return true;
+    }
+
+    /**
+     * Drops the dragged row onto the given index, moving it within
+     * the selected_tags array and persisting the new order
+     * @param {DragEvent} event
+     * @param {number} index the index to drop the dragged row onto
+     */
+    onTagDrop(event, index) {
+        console.log("onTagDrop", { from: this.dragTagIndex, to: index });
+        event.preventDefault();
+        const from = this.dragTagIndex;
+        if (from === null || from === index) {
+            this.onTagDragEnd();
+            return true;
+        }
+        if (index > from) {
+            // if we remove an item from a lower index, the target index shifts down by 1
+            index = index - 1;
+        }
+        const tags = this.selected_tags.slice();
+        const [moved] = tags.splice(from, 1);
+        tags.splice(index, 0, moved);
+        this.selected_tags = tags;
+        this.saveSelectedTags();
+        this.onTagDragEnd();
+        return true;
+    }
+
+    /** Resets drag state, called on drop or when a drag is cancelled */
+    onTagDragEnd() {
+        this.dragTagIndex = null;
+        this.dragOverIndex = null;
+        return true;
+    }
+
     /**
      * Persists the ids of the selected_tags (in order) to localStorage
      */
