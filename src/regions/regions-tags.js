@@ -102,14 +102,18 @@ export default class RegionsTags extends EventSubscriber {
      * @param {{key: string}} args 
      */
     handleKeyAction(args) {
+        if (!this.visible) {
+            return false;
+        }
         let index = parseInt(args.key, 10) - 1;
         if (index < 0) {
             index = 9;
         }
         if (index >= this.selected_tags.length) {
-            return;
+            return false;
         }
         this.linkTag(this.selected_tags[index]);
+        return false;
     }
 
     loadTags() {
