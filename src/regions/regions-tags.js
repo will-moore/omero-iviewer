@@ -50,6 +50,10 @@ export default class RegionsTags extends EventSubscriber {
     right = 30;
     top = 100;
 
+    /** popup size in px, adjustable via the bottom-left resize handle */
+    width = 300;
+    height = 200;
+
     /** @type {Array.<string,function>} */
     sub_list = [
         [REGIONS_SHOW_TAGS, (args) => {
@@ -66,6 +70,8 @@ export default class RegionsTags extends EventSubscriber {
         this.context = context;
         this.onDragMove = this.onDragMove.bind(this);
         this.onDragEnd = this.onDragEnd.bind(this);
+        this.onResizeMove = this.onResizeMove.bind(this);
+        this.onResizeEnd = this.onResizeEnd.bind(this);
     }
 
     /** keyboard actions for the popup */
@@ -95,6 +101,7 @@ export default class RegionsTags extends EventSubscriber {
     unbind() {
         this.unsubscribe();
         this.onDragEnd();
+        this.onResizeEnd();
     }
 
     show() {
@@ -352,7 +359,7 @@ export default class RegionsTags extends EventSubscriber {
     }
 
     onDragMove(event) {
-        const maxRight = Math.max(0, window.innerWidth - 330);
+        const maxRight = Math.max(0, window.innerWidth - this.width - 30);
         const maxTop = Math.max(0, window.innerHeight - 30);
         this.right = Math.min(Math.max(0, window.innerWidth - (event.clientX + this.dragOffsetX)), maxRight);
         this.top = Math.min(Math.max(40, event.clientY - this.dragOffsetY), maxTop);
@@ -361,5 +368,43 @@ export default class RegionsTags extends EventSubscriber {
     onDragEnd() {
         document.removeEventListener('mousemove', this.onDragMove);
         document.removeEventListener('mouseup', this.onDragEnd);
+    }
+
+    /**
+     * Starts resizing when the bottom-left corner handle is pressed.
+     * The popup is anchored via its "right"/"top" css properties, so
+     * resizing from the bottom-left corner grows the width leftwards
+     * and the height downwards, leaving those anchors unchanged.
+     * @param {MouseEvent} event
+     */
+    onResizeStart(event) {
+        if (event.button !== 0) return true;
+        this.resizeStartX = event.clientX;
+        this.resizeStartY = event.clientY;
+        this.resizeStartWidth = this.width;
+        this.resizeStartHeight = this.height;
+        document.addEventListener('mousemove', this.onResizeMove);
+        document.addEventListener('mouseup', this.onResizeEnd);
+        event.stopPropagation();
+        event.preventDefault();
+        return false;
+    }
+
+    onResizeMove(event) {
+        const minWidth = 200;
+        const maxWidth = Math.max(minWidth, window.innerWidth - this.right - 20);
+        const minListHeight = 80;
+        const maxListHeight = Math.max(minListHeight, window.innerHeight - this.top - 120);
+
+        const newWidth = this.resizeStartWidth + (this.resizeStartX - event.clientX);
+        const newHeight = this.resizeStartHeight + (event.clientY - this.resizeStartY);
+
+        this.width = Math.min(Math.max(minWidth, newWidth), maxWidth);
+        this.height = Math.min(Math.max(minListHeight, newHeight), maxListHeight);
+    }
+
+    onResizeEnd() {
+        document.removeEventListener('mousemove', this.onResizeMove);
+        document.removeEventListener('mouseup', this.onResizeEnd);
     }
 }

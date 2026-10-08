@@ -1,7 +1,8 @@
 <template>
     <div show.bind="visible"
-         style="position: fixed; z-index: 1000; width: 300px; min-height: 100px;
+         style="position: fixed; z-index: 1000; width: ${width}px; height: ${height}px; min-height: 100px;
                 background: #f8f8f8; border: solid #ddd 1px; border-radius: 3px;
+                display: flex; flex-direction: column;
                 box-shadow: 2px 2px 5px #ccc; right: ${right}px; top: ${top}px;">
         <div mousedown.trigger="onDragStart($event)"
              style="cursor: move; padding: 3px 5px; background: #e8e8e8;
@@ -45,8 +46,9 @@
             </select>
         </div>
         <!-- The "All Tags" scrollable list -->
-        <div style="padding: 0 5px 5px 5px; max-height: 200px; overflow-y: auto;">
+        
             <template if.bind="active_tab === 'all'">
+            <div style="padding: 0 5px 5px 5px; max-height: ${height - 100}px; overflow-y: auto;">
                 <div show.bind="!tags_loaded">Loading...</div>
                 <div show.bind="tags_loaded && tags.length === 0">No tags found</div>
                 <div show.bind="tags_loaded && tags.length > 0 && filtered_tags.length === 0">
@@ -88,12 +90,14 @@
                         </ul>
                     </li>
                 </ul>
+            </div>
             </template>
 
             <!-- The "Selected Tags" tab content -->
             <template if.bind="active_tab === 'selected'">
+            <div style="padding: 0 5px 5px 5px; overflow-y: auto;">
                 <div show.bind="selected_tags.length === 0">No tags selected</div>
-                <ul class="list-unstyled" style="margin: 0;">
+                <ul class="list-unstyled" style="margin-top: 5px;">
                     <li repeat.for="tag of selected_tags" class="regions-tag-item"
                         style="cursor: pointer; padding: 1px 3px; display: flex;
                                align-items: center; justify-content: space-between;"
@@ -114,7 +118,17 @@
                               click.delegate="deselectTag(tag)">&times;</span>
                     </li>
                 </ul>
+            </div>
             </template>
+
+        <!-- Resize handle: drag to resize the popup (grows left/down) -->
+        <div mousedown.trigger="onResizeStart($event)"
+             title="Drag to resize"
+             style="position: absolute; left: -1px; bottom: -1px; width: 12px; height: 12px;
+                    cursor: sw-resize; user-select: none;
+                    background:
+                        linear-gradient(225deg, transparent 0 40%, #999 40% 55%, transparent 55% 100%),
+                        linear-gradient(225deg, transparent 0 70%, #999 70% 85%, transparent 85% 100%);">
         </div>
     </div>
 </template>
