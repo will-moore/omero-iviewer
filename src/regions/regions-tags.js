@@ -2,7 +2,7 @@ import Context from '../app/context';
 import {inject, customElement, bindable, computedFrom} from 'aurelia-framework';
 import Ui from '../utils/ui';
 import {REGIONS_SHOW_TAGS, LINK_TAG, EventSubscriber} from '../events/events';
-import {WEBCLIENT, TABS} from '../utils/constants';
+import {WEBCLIENT, WEB_API_BASE, TABS} from '../utils/constants';
 import {sendRequest} from '../viewers/viewer/utils/Net';
 
 /** localStorage key used to persist the selected_tags ids (in order) */
@@ -28,14 +28,20 @@ export default class RegionsTags extends EventSubscriber {
     tags = [];
     tags_loaded = false;
 
+    /** the group id associated with the tags */
+    group_id = null;
+
+    /** list of experimenters in the current group */
+    experimenters = [];
+
     /** text typed into the "All Tags" filter input */
     tags_filter = '';
 
+    /** ownerId selected in the "All Tags" owner filter (null = no filter) */
+    tags_owner = null;
+
     /** @type {Array.<{id: number, value: string}>} */
     selected_tags = [];
-
-    /** the group id associated with the tags */
-    group_id = null;
 
     /** which tab is currently showing: 'all' or 'selected' */
     active_tab = 'all';
@@ -47,7 +53,6 @@ export default class RegionsTags extends EventSubscriber {
     /** @type {Array.<string,function>} */
     sub_list = [
         [REGIONS_SHOW_TAGS, (args) => {
-            console.log("REGIONS_SHOW_TAGS args:", args);
             this.group_id = args.group_id;
             this.show();
         }],
@@ -95,6 +100,7 @@ export default class RegionsTags extends EventSubscriber {
     show() {
         this.visible = true;
         this.loadTags();
+        this.loadExperimenters();
     }
 
     /**
@@ -137,6 +143,25 @@ export default class RegionsTags extends EventSubscriber {
         });
     }
 
+    loadExperimenters() {
+        sendRequest({
+            server: this.context.server,
+            uri: this.context.getPrefixedURI(WEB_API_BASE) + '/m/experimenters/?experimentergroup=' + this.group_id,
+            method: 'GET',
+            success: (rsp) => {
+                let json = typeof rsp === 'string' ? JSON.parse(rsp) : rsp;
+                this.experimenters = (json.data || []).map(e => ({
+                    id: e['@id'],
+                    FirstName: e['FirstName'],
+                    LastName: e['LastName']
+                })).sort((a, b) => a.LastName.localeCompare(b.LastName));
+            },
+            error: () => {
+                this.experimenters = [];
+            }
+        });
+    }
+
     parseTags(json) {
         return (json.tags || []).map(
             (t) => ({
@@ -144,6 +169,7 @@ export default class RegionsTags extends EventSubscriber {
                 value: t['value'],
                 tagset: t['set'],
                 expanded: false,
+                ownerId: t['ownerId'],
                 children: []
             })).sort((a, b) => {
                 // tagset should come before individual tags
@@ -158,7 +184,6 @@ export default class RegionsTags extends EventSubscriber {
      * @param {Object} tagset the tagset
      */
     toggleTagset(tagset, callback) {
-        console.log('toggleTagset', tagset);
         tagset.expanded = !tagset.expanded;
         if (!tagset.expanded || tagset.children_loaded) return;
         sendRequest({
@@ -198,15 +223,21 @@ export default class RegionsTags extends EventSubscriber {
 
     /**
      * The tags list filtered by the text typed into the "All Tags" filter
-     * input (case-insensitive substring match on the tag's value)
+     * input (case-insensitive substring match on the tag's value) and/or
+     * the owner selected in the "All Tags" owner filter
      * @return {Array.<Object>} the filtered tags
      */
-    @computedFrom('tags', 'tags_filter')
+    @computedFrom('tags', 'tags_filter', 'tags_owner')
     get filtered_tags() {
         let filter = (this.tags_filter || '').trim().toLowerCase();
-        if (filter === '') return this.tags;
-        return this.tags.filter(
-            (tag) => tag.value.toLowerCase().includes(filter));
+        let owner = this.tags_owner;
+        return this.tags.filter((tag) => {
+            if (owner !== null && tag.ownerId !== owner) return false;
+            if (filter !== '' && !tag.value.toLowerCase().includes(filter)) {
+                return false;
+            }
+            return true;
+        });
     }
 
     /**

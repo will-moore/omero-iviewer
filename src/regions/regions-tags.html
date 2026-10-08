@@ -28,12 +28,21 @@
             </div>
         </div>
 
-        <!-- Filter input for the "All Tags" tab -->
-        <div if.bind="active_tab === 'all'" style="padding: 5px">
+        <!-- Filter controls for the "All Tags" tab -->
+        <div if.bind="active_tab === 'all'"
+             style="padding: 5px; display: flex; gap: 4px;">
             <input type="text" class="form-control input-sm"
                    placeholder="Filter Tags..."
-                   style="width: 100%; box-sizing: border-box;"
+                   style="flex: 1; box-sizing: border-box;"
                    value.bind="tags_filter & debounce:200" />
+            <select class="form-control input-sm"
+                    style="flex: 0 0 auto; width: auto; box-sizing: border-box;"
+                    value.bind="tags_owner">
+                <option model.bind="null">Filter by owner: All</option>
+                <option repeat.for="exp of experimenters" model.bind="exp.id">
+                    ${exp.FirstName} ${exp.LastName}
+                </option>
+            </select>
         </div>
         <!-- The "All Tags" scrollable list -->
         <div style="padding: 0 5px 5px 5px; max-height: 200px; overflow-y: auto;">
