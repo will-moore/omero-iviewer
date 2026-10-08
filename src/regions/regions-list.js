@@ -21,6 +21,7 @@ import Context from '../app/context';
 import Misc from '../utils/misc';
 import Ui from '../utils/ui';
 import {sendRequest} from '../viewers/viewer/utils/Net';
+import {IVIEWER} from '../utils/constants';
 import {inject,
     customElement,
     computedFrom,
@@ -659,7 +660,7 @@ export default class RegionsList extends EventSubscriber {
         // on focus, we load existing Tags
         var properties = {
             "server" : this.context.server,
-            "uri" : "/iviewer/link_annotations/?roi=" + roi_ids.join("&roi="),
+            "uri" : this.context.getPrefixedURI(IVIEWER) +"/link_annotations/?roi=" + roi_ids.join("&roi="),
             "method" : 'GET',
             "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
             "success": (rsp)=>{
@@ -719,7 +720,7 @@ export default class RegionsList extends EventSubscriber {
             sendRequest({
                 "content" : JSON.stringify(postContent),
                 "server" : this.context.server,
-                "uri" : "/iviewer/link_annotations/",
+                "uri" : this.context.getPrefixedURI(IVIEWER) + "/link_annotations/",
                 "method" : 'POST',
                 "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
                 "jsonp" : false,
@@ -744,7 +745,7 @@ export default class RegionsList extends EventSubscriber {
     handleRemoveTag(link_ids) {
         sendRequest({
             "server" : this.context.server,
-            "uri" : `/iviewer/link_annotations/?link=${link_ids.join('&link=')}`,
+            "uri" : this.context.getPrefixedURI(IVIEWER) + `/link_annotations/?link=${link_ids.join('&link=')}`,
             "method" : 'DELETE',
             "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
             "jsonp" : false,
