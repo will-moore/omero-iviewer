@@ -610,8 +610,11 @@ export default class RegionsList extends EventSubscriber {
         if (which === this.active_column && which !== "roi_tags") return;
         this.active_column = which;
         if (this.active_column == "roi_tags") {
-            this.context.publish(REGIONS_SHOW_TAGS, {group_id: this.regions_info.image_info.group_id});
             this.loadRoiTags();
+            // Only show ROI Tags dialog if user canAnnotate
+            if (this.regions_info.image_info.can_annotate) {
+                this.context.publish(REGIONS_SHOW_TAGS, {group_id: this.regions_info.image_info.group_id});
+            }
         }
     }
 
