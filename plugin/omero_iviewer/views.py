@@ -1047,15 +1047,17 @@ def link_annotations(request, conn=None, **kwargs):
     for roi_id in roi_ids:
         roi = conn.getObject("Roi", roi_id)
         if roi is None:
-            return JsonResponse({"errors": ["Could not find roi!"]})
+            errors.append(f"ROI: {roi_id} not found.")
+            continue
 
         for ann_id in ann_ids:
             ann = conn.getObject("Annotation", ann_id)
             if ann is None:
-                return JsonResponse({"errors": ["Could not find associated annotation!"]})
+                errors.append(f"Tag: {ann_id} not found.")
+                continue
             
             try:
-                r = roi.linkAnnotation(ann)
+                roi.linkAnnotation(ann)
                 links += 1
                 added.append({"id": ann.id, "textValue": ann.textValue})
             except Exception as ex:

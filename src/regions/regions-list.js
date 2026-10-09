@@ -24,7 +24,6 @@ import {sendRequest} from '../viewers/viewer/utils/Net';
 import {IVIEWER} from '../utils/constants';
 import {inject,
     customElement,
-    computedFrom,
     bindable,
     BindingEngine} from 'aurelia-framework';
 import {
@@ -699,11 +698,19 @@ export default class RegionsList extends EventSubscriber {
     // Handle LINK_TAG: link the Tag to the ROIs of the selected shapes
     handleAddTag(params) {
         let roi_ids = new Set();
+        let unsaved_rois = false;
         this.regions_info.selected_shapes.forEach((shape_id) => {
             let roi_id = parseInt(String(shape_id).split(':')[0], 10);
             // unsaved ROIs have negative ids and can't be linked yet
-            if (roi_id > 0) roi_ids.add(roi_id);
+            if (roi_id > 0) {
+                roi_ids.add(roi_id);
+            } else {
+                unsaved_rois = true;
+            }
         });
+        if (unsaved_rois) {
+            alert('Unsaved ROIs cannot be Tagged. Please save ROIs before adding Tags.');
+        }
         if (roi_ids.size === 0) return;
         roi_ids = Array.from(roi_ids);
 
@@ -727,7 +734,13 @@ export default class RegionsList extends EventSubscriber {
                 "method" : 'POST',
                 "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
                 "jsonp" : false,
-                "success": () => this.loadRoiTags(),
+                "success": (rsp) => {
+                    let rsp_json = JSON.parse(rsp);
+                    if (rsp_json.errors && rsp_json.errors.length > 0) {
+                        alert('Errors linking tag: ' + rsp_json.errors.join('\n'));
+                    }
+                    this.loadRoiTags();
+                }
             });
         } else {
             // All selected ROIs already have this tag, so we REMOVE the tag from those ROIs
@@ -752,7 +765,13 @@ export default class RegionsList extends EventSubscriber {
             "method" : 'DELETE',
             "headers" : {"X-CSRFToken" : Misc.getCookie("csrftoken")},
             "jsonp" : false,
-            "success": () => this.loadRoiTags(),
+            "success": (rsp) => {
+                let rsp_json = JSON.parse(rsp);
+                if (rsp_json.errors && rsp_json.errors.length > 0) {
+                    alert('Errors removing link: ' + rsp_json.errors.join('\n'));
+                }
+                this.loadRoiTags();
+            }
         });
     }
 }
