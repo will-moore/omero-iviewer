@@ -172,6 +172,11 @@ export default class RegionsList extends EventSubscriber {
             this.registerObservers();
             // event subscriptions
             this.subscribe();
+
+            // If the active column is roi_tags, load the ROI tags
+            if (this.active_column == "roi_tags") {
+                this.loadRoiTags();
+            }
         };
 
         // tear down old observers
