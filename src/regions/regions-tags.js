@@ -47,12 +47,12 @@ export default class RegionsTags extends EventSubscriber {
     active_tab = 'all';
 
     /** popup position in px (viewport coordinates) */
-    right = 30;
+    right = 10;
     top = 100;
 
     /** popup size in px, adjustable via the bottom-left resize handle */
-    width = 300;
-    height = 200;
+    width = 320;
+    height = 220;
 
     /** @type {Array.<string,function>} */
     sub_list = [

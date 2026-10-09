@@ -1,11 +1,11 @@
 <template>
     <div show.bind="visible"
          style="position: fixed; z-index: 1000; width: ${width}px; height: ${height}px; min-height: 100px;
-                background: #f8f8f8; border: solid #ddd 1px; border-radius: 3px;
+                background: #f8f8f8; border: solid #1F6AAA 2px; border-radius: 5px;
                 display: flex; flex-direction: column;
                 box-shadow: 2px 2px 5px #ccc; right: ${right}px; top: ${top}px;">
         <div mousedown.trigger="onDragStart($event)"
-             style="cursor: move; padding: 3px 5px; background: #e8e8e8;
+             style="cursor: move; padding: 3px 5px; background: #1F6AAA; color: #fff; border-radius: 3px 3px 0 0;
                     user-select: none; display: flex; justify-content: space-between;">
             <span>Tags</span>
             <span style="cursor: pointer;" title="Close"
@@ -14,24 +14,24 @@
         </div>
 
         <!-- We have two tabs: All Tags and Selected Tags -->
-        <div style="display: flex; border-bottom: solid #ddd 1px; user-select: none;">
+        <div style="display: flex; user-select: none; background: #1F6AAA;">
             <div click.delegate="selectTab('all')"
-                 style="flex: 1; text-align: center; cursor: pointer; padding: 4px 2px;
-                        font-size: 11px;
-                        ${active_tab === 'all' ? 'background: #f8f8f8; font-weight: bold;' : 'background: #e8e8e8;'}">
+                 style="flex: 1; text-align: center; cursor: pointer; padding: 6px 2px 4px 2px; border-radius: 5px 5px 0 0; 
+                        font-size: 12px; border-width: 1px 1px 0 0; border-style: solid; border-color: #1F6AAA;
+                        ${active_tab === 'all' ? 'background: #f8f8f8; font-weight: 300;' : 'background: #ccc;'}">
                 All Tags [${tags.length}]
             </div>
             <div click.delegate="selectTab('selected')"
-                 style="flex: 1; text-align: center; cursor: pointer; padding: 4px 2px;
-                        font-size: 11px;
-                        ${active_tab === 'selected' ? 'background: #f8f8f8; font-weight: bold;' : 'background: #e8e8e8;'}">
+                 style="flex: 1; text-align: center; cursor: pointer; padding: 6px 2px 4px 2px; border-radius: 5px 5px 0 0; 
+                        font-size: 12px; border-width: 1px 0 0 1px; border-style: solid; border-color: #1F6AAA;
+                        ${active_tab === 'selected' ? 'background: #f8f8f8; font-weight: 300;' : 'background: #ccc;'}">
                 Selected Tags [${selected_tags.length}]
             </div>
         </div>
 
         <!-- Filter controls for the "All Tags" tab -->
         <div if.bind="active_tab === 'all'"
-             style="padding: 5px; display: flex; gap: 4px;">
+             style="padding: 7px 7px 5px 7px; display: flex; gap: 4px;">
             <input type="text" class="form-control input-sm"
                    placeholder="Filter Tags..."
                    style="flex: 1; box-sizing: border-box;"
